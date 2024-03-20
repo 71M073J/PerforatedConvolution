@@ -1,0 +1,87 @@
+Class accs: [0.58102239 0.56692299 0.45670344 0.41301683 0.37816438 0.23409471
+ 0.5372785  0.52352285 0.56939026 0.49643414 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.4443752674086505
+Epoch 9, network MobileNetV2, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 448.8834524154663 seconds
+
+Class accs: [0.50339757 0.48629679 0.22483821 0.1473438  0.23529412 0.33259028
+ 0.60604708 0.45160931 0.48723096 0.31101704 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.6965885949168742
+Epoch 9, network MobileNetV2, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering False
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 481.9697313308716 seconds
+
+Class accs: [0.42242532 0.60334262 0.2853164  0.20160481 0.33288695 0.29342984
+ 0.55171645 0.56513986 0.48829431 0.42357398 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.5811498433054765
+Epoch 9, network MobileNetV2, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: False, 861.5661218166351 seconds
+
+Class accs: [0.73320708 0.79482605 0.54871395 0.43043478 0.50652247 0.28826218
+ 0.70849571 0.64184595 0.67643454 0.51332962 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.1701858108108107
+Epoch 9, network MobileNetV2, perf mode ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], gradient filtering True
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], Custom interpolation: False, 431.26620841026306 seconds
+
+--------------------------------------------------------------------------------------
+
+Class accs: [0.4559135  0.58833352 0.36199398 0.19721448 0.30603593 0.25033422
+ 0.63570554 0.48589901 0.47760695 0.42734471 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.57984266647404
+Epoch 9, network MobileNetV3, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 539.2976710796356 seconds
+
+Class accs: [0.41512586 0.4254156  0.25320549 0.25061343 0.18444222 0.30059027
+ 0.50679893 0.47650857 0.51441933 0.34188511 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.7252921352684922
+Epoch 9, network MobileNetV3, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering False
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 524.3175358772278 seconds
+
+Class accs: [0.45951372 0.44304503 0.11734523 0.2379149  0.15356347 0.18199042
+ 0.69730392 0.40372394 0.54138354 0.36145787 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.720022622077258
+Epoch 9, network MobileNetV3, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: False, 607.1840438842773 seconds
+
+Class accs: [0.59237798 0.50417734 0.46579006 0.34585796 0.3615479  0.36298774
+ 0.67472699 0.59503119 0.64698016 0.54619414 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.3402433870188033
+Epoch 9, network MobileNetV3, perf mode ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], gradient filtering True
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], Custom interpolation: False, 384.6478431224823 seconds
+
+--------------------------------------------------------------------------------------
+
+Class accs: [0.5779163  0.63745819 0.36319018 0.37710588 0.41618368 0.4394429
+ 0.74944296 0.56146216 0.7031877  0.51514814 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.3333870465860598
+Epoch 9, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.resnet.ResNet'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 320.5354812145233 seconds
+
+Class accs: [0.65430036 0.62703365 0.43467113 0.39726027 0.3457162  0.32519782
+ 0.64996102 0.57628441 0.59670048 0.46359683 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.3897638225962394
+Epoch 9, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering False
+<class 'Architectures.resnet.ResNet'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: True, 286.1196200847626 seconds
+
+Class accs: [0.68683155 0.56814633 0.5579605  0.43889941 0.45955882 0.33530264
+ 0.68301382 0.6954343  0.61844303 0.63079839 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.2311575009168296
+Epoch 9, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+<class 'Architectures.resnet.ResNet'>, Perforation mode: ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], Custom interpolation: False, 437.4535267353058 seconds
+
+Class accs: [0.68896805 0.69881934 0.62218506 0.48528756 0.52707219 0.43285412
+ 0.76243032 0.72891566 0.66778149 0.67298261 0.         0.
+ 0.         0.         0.        ]
+Average Epoch Test Loss: 1.3027862071312677
+Epoch 9, network ResNet, perf mode ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], gradient filtering True
+<class 'Architectures.resnet.ResNet'>, Perforation mode: ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'], Custom interpolation: False, 272.4385235309601 seconds

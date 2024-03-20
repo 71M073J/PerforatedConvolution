@@ -1,0 +1,995 @@
+C:\Users\timotej\AppData\Local\Programs\Python\Python39\python.exe C:\Users\timotej\PycharmProjects\convBackward\main.py 
+==============================================================================================================
+Layer (type:depth-idx)                                       Output Shape              Param #
+==============================================================================================================
+MobileNetV2                                                  [64, 10]                  --
+├─Sequential: 1-1                                            [64, 1280, 1, 1]          --
+│    └─Conv2dNormActivation: 2-1                             [64, 32, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                            [64, 32, 16, 16]          864
+│    │    └─BatchNorm2d: 3-2                                 [64, 32, 16, 16]          64
+│    │    └─ReLU6: 3-3                                       [64, 32, 16, 16]          --
+│    └─InvertedResidual: 2-2                                 [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                                  [64, 16, 16, 16]          896
+│    └─InvertedResidual: 2-3                                 [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                                  [64, 24, 8, 8]            5,136
+│    └─InvertedResidual: 2-4                                 [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                                  [64, 24, 8, 8]            8,832
+│    └─InvertedResidual: 2-5                                 [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-7                                  [64, 32, 4, 4]            10,000
+│    └─InvertedResidual: 2-6                                 [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-8                                  [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-7                                 [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-9                                  [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-8                                 [64, 64, 1, 1]            --
+│    │    └─Sequential: 3-10                                 [64, 64, 1, 1]            21,056
+│    └─InvertedResidual: 2-9                                 [64, 64, 1, 1]            --
+│    │    └─Sequential: 3-11                                 [64, 64, 1, 1]            54,272
+│    └─InvertedResidual: 2-10                                [64, 64, 1, 1]            --
+│    │    └─Sequential: 3-12                                 [64, 64, 1, 1]            54,272
+│    └─InvertedResidual: 2-11                                [64, 64, 1, 1]            --
+│    │    └─Sequential: 3-13                                 [64, 64, 1, 1]            54,272
+│    └─InvertedResidual: 2-12                                [64, 96, 1, 1]            --
+│    │    └─Sequential: 3-14                                 [64, 96, 1, 1]            66,624
+│    └─InvertedResidual: 2-13                                [64, 96, 1, 1]            --
+│    │    └─Sequential: 3-15                                 [64, 96, 1, 1]            118,272
+│    └─InvertedResidual: 2-14                                [64, 96, 1, 1]            --
+│    │    └─Sequential: 3-16                                 [64, 96, 1, 1]            118,272
+│    └─InvertedResidual: 2-15                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                                 [64, 160, 1, 1]           155,264
+│    └─InvertedResidual: 2-16                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                                 [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-17                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-19                                 [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-18                                [64, 320, 1, 1]           --
+│    │    └─Sequential: 3-20                                 [64, 320, 1, 1]           473,920
+│    └─Conv2dNormActivation: 2-19                            [64, 1280, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-21                           [64, 1280, 1, 1]          409,600
+│    │    └─BatchNorm2d: 3-22                                [64, 1280, 1, 1]          2,560
+│    │    └─ReLU6: 3-23                                      [64, 1280, 1, 1]          --
+├─Sequential: 1-2                                            [64, 10]                  --
+│    └─Dropout: 2-20                                         [64, 1280]                --
+│    └─Linear: 2-21                                          [64, 10]                  12,810
+==============================================================================================================
+Total params: 2,236,682
+Trainable params: 2,236,682
+Non-trainable params: 0
+Total mult-adds (M): 3.00
+==============================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 59.51
+Params size (MB): 0.19
+Estimated Total Size (MB): 60.49
+==============================================================================================================
+Average Epoch Train Loss: 2.1558586109752844
+Average Epoch Train Loss: 2.06349392669808
+Average Epoch Train Loss: 2.0213911292563123
+Average Epoch Train Loss: 2.020710973617532
+Average Epoch Train Loss: 2.013672569567923
+Average Epoch Test Loss: 2.023294939933766
+Epoch 4, network MobileNetV2, perf mode both
+Average Epoch Train Loss: 2.0092129225751245
+Average Epoch Train Loss: 1.990778221683855
+Average Epoch Train Loss: 1.9860211259779517
+Average Epoch Train Loss: 1.9847476356907894
+Average Epoch Train Loss: 2.0069208484286096
+Average Epoch Test Loss: 1.9679311044185632
+Epoch 9, network MobileNetV2, perf mode both
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: both, Custom interpolation: True, 499.5390911102295 seconds
+====================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #
+====================================================================================================
+MobileNetV2                                        [64, 10]                  --
+├─Sequential: 1-1                                  [64, 1280, 1, 1]          --
+│    └─Conv2dNormActivation: 2-1                   [64, 32, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                  [64, 32, 16, 16]          864
+│    │    └─BatchNorm2d: 3-2                       [64, 32, 16, 16]          64
+│    │    └─ReLU6: 3-3                             [64, 32, 16, 16]          --
+│    └─InvertedResidual: 2-2                       [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                        [64, 16, 16, 16]          896
+│    └─InvertedResidual: 2-3                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                        [64, 24, 8, 8]            5,136
+│    └─InvertedResidual: 2-4                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                        [64, 24, 8, 8]            8,832
+│    └─InvertedResidual: 2-5                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-7                        [64, 32, 4, 4]            10,000
+│    └─InvertedResidual: 2-6                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-8                        [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-7                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-9                        [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-8                       [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-10                       [64, 64, 2, 2]            21,056
+│    └─InvertedResidual: 2-9                       [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-11                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-10                      [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-12                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-11                      [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-13                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-12                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-14                       [64, 96, 2, 2]            66,624
+│    └─InvertedResidual: 2-13                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-15                       [64, 96, 2, 2]            118,272
+│    └─InvertedResidual: 2-14                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-16                       [64, 96, 2, 2]            118,272
+│    └─InvertedResidual: 2-15                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                       [64, 160, 1, 1]           155,264
+│    └─InvertedResidual: 2-16                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                       [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-17                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-19                       [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-18                      [64, 320, 1, 1]           --
+│    │    └─Sequential: 3-20                       [64, 320, 1, 1]           473,920
+│    └─Conv2dNormActivation: 2-19                  [64, 1280, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-21                 [64, 1280, 1, 1]          409,600
+│    │    └─BatchNorm2d: 3-22                      [64, 1280, 1, 1]          2,560
+│    │    └─ReLU6: 3-23                            [64, 1280, 1, 1]          --
+├─Sequential: 1-2                                  [64, 10]                  --
+│    └─Dropout: 2-20                               [64, 1280]                --
+│    └─Linear: 2-21                                [64, 10]                  12,810
+====================================================================================================
+Total params: 2,236,682
+Trainable params: 2,236,682
+Non-trainable params: 0
+Total mult-adds (M): 3.00
+====================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 69.78
+Params size (MB): 0.19
+Estimated Total Size (MB): 70.76
+====================================================================================================
+Average Epoch Train Loss: 2.173158040596106
+Average Epoch Train Loss: 2.0307356724528804
+Average Epoch Train Loss: 1.8909290471083748
+Average Epoch Train Loss: 1.8304847945190257
+Average Epoch Train Loss: 1.784779794185633
+Average Epoch Test Loss: 1.7415981591171763
+Epoch 4, network MobileNetV2, perf mode both
+Average Epoch Train Loss: 1.743938332092372
+Average Epoch Train Loss: 1.70744104507468
+Average Epoch Train Loss: 1.6798409995110242
+Average Epoch Train Loss: 1.6475913426275783
+Average Epoch Train Loss: 1.6248982457992531
+Average Epoch Test Loss: 1.6044550281161096
+Epoch 9, network MobileNetV2, perf mode both
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: both, Custom interpolation: False, 1040.1878290176392 seconds
+====================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #
+====================================================================================================
+MobileNetV2                                        [64, 10]                  --
+├─Sequential: 1-1                                  [64, 1280, 1, 1]          --
+│    └─Conv2dNormActivation: 2-1                   [64, 32, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                  [64, 32, 16, 16]          864
+│    │    └─BatchNorm2d: 3-2                       [64, 32, 16, 16]          64
+│    │    └─ReLU6: 3-3                             [64, 32, 16, 16]          --
+│    └─InvertedResidual: 2-2                       [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                        [64, 16, 16, 16]          896
+│    └─InvertedResidual: 2-3                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                        [64, 24, 8, 8]            5,136
+│    └─InvertedResidual: 2-4                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                        [64, 24, 8, 8]            8,832
+│    └─InvertedResidual: 2-5                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-7                        [64, 32, 4, 4]            10,000
+│    └─InvertedResidual: 2-6                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-8                        [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-7                       [64, 32, 4, 4]            --
+│    │    └─Sequential: 3-9                        [64, 32, 4, 4]            14,848
+│    └─InvertedResidual: 2-8                       [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-10                       [64, 64, 2, 2]            21,056
+│    └─InvertedResidual: 2-9                       [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-11                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-10                      [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-12                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-11                      [64, 64, 2, 2]            --
+│    │    └─Sequential: 3-13                       [64, 64, 2, 2]            54,272
+│    └─InvertedResidual: 2-12                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-14                       [64, 96, 2, 2]            66,624
+│    └─InvertedResidual: 2-13                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-15                       [64, 96, 2, 2]            118,272
+│    └─InvertedResidual: 2-14                      [64, 96, 2, 2]            --
+│    │    └─Sequential: 3-16                       [64, 96, 2, 2]            118,272
+│    └─InvertedResidual: 2-15                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                       [64, 160, 1, 1]           155,264
+│    └─InvertedResidual: 2-16                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                       [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-17                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-19                       [64, 160, 1, 1]           320,000
+│    └─InvertedResidual: 2-18                      [64, 320, 1, 1]           --
+│    │    └─Sequential: 3-20                       [64, 320, 1, 1]           473,920
+│    └─Conv2dNormActivation: 2-19                  [64, 1280, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-21                 [64, 1280, 1, 1]          409,600
+│    │    └─BatchNorm2d: 3-22                      [64, 1280, 1, 1]          2,560
+│    │    └─ReLU6: 3-23                            [64, 1280, 1, 1]          --
+├─Sequential: 1-2                                  [64, 10]                  --
+│    └─Dropout: 2-20                               [64, 1280]                --
+│    └─Linear: 2-21                                [64, 10]                  12,810
+====================================================================================================
+Total params: 2,236,682
+Trainable params: 2,236,682
+Non-trainable params: 0
+Total mult-adds (M): 3.00
+====================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 69.78
+Params size (MB): 0.19
+Estimated Total Size (MB): 70.76
+====================================================================================================
+Average Epoch Train Loss: 1.8551214660384068
+Average Epoch Train Loss: 1.5900713946368243
+Average Epoch Train Loss: 1.4512530526260223
+Average Epoch Train Loss: 1.3494695063844684
+Average Epoch Train Loss: 1.2755707785550765
+Average Epoch Test Loss: 1.2740932589404783
+Epoch 4, network MobileNetV2, perf mode none
+Average Epoch Train Loss: 1.2132419027271515
+Average Epoch Train Loss: 1.1569315447746267
+Average Epoch Train Loss: 1.1077699403505068
+Average Epoch Train Loss: 1.0668050188088993
+Average Epoch Train Loss: 1.0256385857485775
+Average Epoch Test Loss: 1.0914376965627222
+Epoch 9, network MobileNetV2, perf mode none
+<class 'Architectures.mobilenetv2.MobileNetV2'>, Perforation mode: none, Custom interpolation: False, 415.28651332855225 seconds
+==============================================================================================================
+Layer (type:depth-idx)                                       Output Shape              Param #
+==============================================================================================================
+MobileNetV3                                                  [64, 10]                  --
+├─Sequential: 1-1                                            [64, 960, 1, 1]           --
+│    └─Conv2dNormActivation: 2-1                             [64, 16, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                            [64, 16, 16, 16]          432
+│    │    └─BatchNorm2d: 3-2                                 [64, 16, 16, 16]          32
+│    │    └─Hardswish: 3-3                                   [64, 16, 16, 16]          --
+│    └─InvertedResidual: 2-2                                 [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                                  [64, 16, 16, 16]          464
+│    └─InvertedResidual: 2-3                                 [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                                  [64, 24, 8, 8]            3,440
+│    └─InvertedResidual: 2-4                                 [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                                  [64, 24, 8, 8]            4,440
+│    └─InvertedResidual: 2-5                                 [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-7                                  [64, 40, 4, 4]            10,328
+│    └─InvertedResidual: 2-6                                 [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-8                                  [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-7                                 [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-9                                  [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-8                                 [64, 80, 1, 1]            --
+│    │    └─Sequential: 3-10                                 [64, 80, 1, 1]            32,080
+│    └─InvertedResidual: 2-9                                 [64, 80, 1, 1]            --
+│    │    └─Sequential: 3-11                                 [64, 80, 1, 1]            34,760
+│    └─InvertedResidual: 2-10                                [64, 80, 1, 1]            --
+│    │    └─Sequential: 3-12                                 [64, 80, 1, 1]            31,992
+│    └─InvertedResidual: 2-11                                [64, 80, 1, 1]            --
+│    │    └─Sequential: 3-13                                 [64, 80, 1, 1]            31,992
+│    └─InvertedResidual: 2-12                                [64, 112, 1, 1]           --
+│    │    └─Sequential: 3-14                                 [64, 112, 1, 1]           214,424
+│    └─InvertedResidual: 2-13                                [64, 112, 1, 1]           --
+│    │    └─Sequential: 3-15                                 [64, 112, 1, 1]           386,120
+│    └─InvertedResidual: 2-14                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-16                                 [64, 160, 1, 1]           429,224
+│    └─InvertedResidual: 2-15                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                                 [64, 160, 1, 1]           797,360
+│    └─InvertedResidual: 2-16                                [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                                 [64, 160, 1, 1]           797,360
+│    └─Conv2dNormActivation: 2-17                            [64, 960, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-19                           [64, 960, 1, 1]           153,600
+│    │    └─BatchNorm2d: 3-20                                [64, 960, 1, 1]           1,920
+│    │    └─Hardswish: 3-21                                  [64, 960, 1, 1]           --
+├─AdaptiveAvgPool2d: 1-2                                     [64, 960, 1, 1]           --
+├─Sequential: 1-3                                            [64, 10]                  --
+│    └─Linear: 2-18                                          [64, 1280]                1,230,080
+│    └─Hardswish: 2-19                                       [64, 1280]                --
+│    └─Dropout: 2-20                                         [64, 1280]                --
+│    └─Linear: 2-21                                          [64, 10]                  12,810
+==============================================================================================================
+Total params: 4,214,842
+Trainable params: 4,214,842
+Non-trainable params: 0
+Total mult-adds (M): 177.89
+==============================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 41.71
+Params size (MB): 11.12
+Estimated Total Size (MB): 53.62
+==============================================================================================================
+Average Epoch Train Loss: 1.9658682376866998
+Average Epoch Train Loss: 1.9163887816167318
+Average Epoch Train Loss: 1.889348731441145
+Average Epoch Train Loss: 1.8643185871932788
+Average Epoch Train Loss: 1.8497349181521159
+Average Epoch Test Loss: 1.8473459517803166
+Epoch 4, network MobileNetV3, perf mode both
+Average Epoch Train Loss: 1.8556340571657184
+Average Epoch Train Loss: 1.8570060024559922
+Average Epoch Train Loss: 1.7934342841505158
+Average Epoch Train Loss: 1.8094718574968884
+Average Epoch Train Loss: 1.8116857927520449
+Average Epoch Test Loss: 2.273956515880601
+Epoch 9, network MobileNetV3, perf mode both
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: both, Custom interpolation: True, 522.7795624732971 seconds
+====================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #
+====================================================================================================
+MobileNetV3                                        [64, 10]                  --
+├─Sequential: 1-1                                  [64, 960, 1, 1]           --
+│    └─Conv2dNormActivation: 2-1                   [64, 16, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                  [64, 16, 16, 16]          432
+│    │    └─BatchNorm2d: 3-2                       [64, 16, 16, 16]          32
+│    │    └─Hardswish: 3-3                         [64, 16, 16, 16]          --
+│    └─InvertedResidual: 2-2                       [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                        [64, 16, 16, 16]          464
+│    └─InvertedResidual: 2-3                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                        [64, 24, 8, 8]            3,440
+│    └─InvertedResidual: 2-4                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                        [64, 24, 8, 8]            4,440
+│    └─InvertedResidual: 2-5                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-7                        [64, 40, 4, 4]            10,328
+│    └─InvertedResidual: 2-6                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-8                        [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-7                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-9                        [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-8                       [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-10                       [64, 80, 2, 2]            32,080
+│    └─InvertedResidual: 2-9                       [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-11                       [64, 80, 2, 2]            34,760
+│    └─InvertedResidual: 2-10                      [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-12                       [64, 80, 2, 2]            31,992
+│    └─InvertedResidual: 2-11                      [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-13                       [64, 80, 2, 2]            31,992
+│    └─InvertedResidual: 2-12                      [64, 112, 2, 2]           --
+│    │    └─Sequential: 3-14                       [64, 112, 2, 2]           214,424
+│    └─InvertedResidual: 2-13                      [64, 112, 2, 2]           --
+│    │    └─Sequential: 3-15                       [64, 112, 2, 2]           386,120
+│    └─InvertedResidual: 2-14                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-16                       [64, 160, 1, 1]           429,224
+│    └─InvertedResidual: 2-15                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                       [64, 160, 1, 1]           797,360
+│    └─InvertedResidual: 2-16                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                       [64, 160, 1, 1]           797,360
+│    └─Conv2dNormActivation: 2-17                  [64, 960, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-19                 [64, 960, 1, 1]           153,600
+│    │    └─BatchNorm2d: 3-20                      [64, 960, 1, 1]           1,920
+│    │    └─Hardswish: 3-21                        [64, 960, 1, 1]           --
+├─AdaptiveAvgPool2d: 1-2                           [64, 960, 1, 1]           --
+├─Sequential: 1-3                                  [64, 10]                  --
+│    └─Linear: 2-18                                [64, 1280]                1,230,080
+│    └─Hardswish: 2-19                             [64, 1280]                --
+│    └─Dropout: 2-20                               [64, 1280]                --
+│    └─Linear: 2-21                                [64, 10]                  12,810
+====================================================================================================
+Total params: 4,214,842
+Trainable params: 4,214,842
+Non-trainable params: 0
+Total mult-adds (M): 177.89
+====================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 49.23
+Params size (MB): 11.12
+Estimated Total Size (MB): 61.14
+====================================================================================================
+Average Epoch Train Loss: 2.057960998621977
+Average Epoch Train Loss: 1.998376447479552
+Average Epoch Train Loss: 2.0882889597039473
+Average Epoch Train Loss: 1.9996624399893315
+Average Epoch Train Loss: 1.9156820587548897
+Average Epoch Test Loss: 2.634740620554765
+Epoch 4, network MobileNetV3, perf mode both
+Average Epoch Train Loss: 1.951193232963638
+Average Epoch Train Loss: 2.003967545619221
+Average Epoch Train Loss: 1.9654641727973863
+Average Epoch Train Loss: 2.035779103785117
+Average Epoch Train Loss: 2.0983303281694523
+Average Epoch Test Loss: 2.11229808910473
+Epoch 9, network MobileNetV3, perf mode both
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: both, Custom interpolation: False, 824.2182242870331 seconds
+====================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #
+====================================================================================================
+MobileNetV3                                        [64, 10]                  --
+├─Sequential: 1-1                                  [64, 960, 1, 1]           --
+│    └─Conv2dNormActivation: 2-1                   [64, 16, 16, 16]          --
+│    │    └─PerforatedConv2d: 3-1                  [64, 16, 16, 16]          432
+│    │    └─BatchNorm2d: 3-2                       [64, 16, 16, 16]          32
+│    │    └─Hardswish: 3-3                         [64, 16, 16, 16]          --
+│    └─InvertedResidual: 2-2                       [64, 16, 16, 16]          --
+│    │    └─Sequential: 3-4                        [64, 16, 16, 16]          464
+│    └─InvertedResidual: 2-3                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-5                        [64, 24, 8, 8]            3,440
+│    └─InvertedResidual: 2-4                       [64, 24, 8, 8]            --
+│    │    └─Sequential: 3-6                        [64, 24, 8, 8]            4,440
+│    └─InvertedResidual: 2-5                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-7                        [64, 40, 4, 4]            10,328
+│    └─InvertedResidual: 2-6                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-8                        [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-7                       [64, 40, 4, 4]            --
+│    │    └─Sequential: 3-9                        [64, 40, 4, 4]            20,992
+│    └─InvertedResidual: 2-8                       [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-10                       [64, 80, 2, 2]            32,080
+│    └─InvertedResidual: 2-9                       [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-11                       [64, 80, 2, 2]            34,760
+│    └─InvertedResidual: 2-10                      [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-12                       [64, 80, 2, 2]            31,992
+│    └─InvertedResidual: 2-11                      [64, 80, 2, 2]            --
+│    │    └─Sequential: 3-13                       [64, 80, 2, 2]            31,992
+│    └─InvertedResidual: 2-12                      [64, 112, 2, 2]           --
+│    │    └─Sequential: 3-14                       [64, 112, 2, 2]           214,424
+│    └─InvertedResidual: 2-13                      [64, 112, 2, 2]           --
+│    │    └─Sequential: 3-15                       [64, 112, 2, 2]           386,120
+│    └─InvertedResidual: 2-14                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-16                       [64, 160, 1, 1]           429,224
+│    └─InvertedResidual: 2-15                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-17                       [64, 160, 1, 1]           797,360
+│    └─InvertedResidual: 2-16                      [64, 160, 1, 1]           --
+│    │    └─Sequential: 3-18                       [64, 160, 1, 1]           797,360
+│    └─Conv2dNormActivation: 2-17                  [64, 960, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-19                 [64, 960, 1, 1]           153,600
+│    │    └─BatchNorm2d: 3-20                      [64, 960, 1, 1]           1,920
+│    │    └─Hardswish: 3-21                        [64, 960, 1, 1]           --
+├─AdaptiveAvgPool2d: 1-2                           [64, 960, 1, 1]           --
+├─Sequential: 1-3                                  [64, 10]                  --
+│    └─Linear: 2-18                                [64, 1280]                1,230,080
+│    └─Hardswish: 2-19                             [64, 1280]                --
+│    └─Dropout: 2-20                               [64, 1280]                --
+│    └─Linear: 2-21                                [64, 10]                  12,810
+====================================================================================================
+Total params: 4,214,842
+Trainable params: 4,214,842
+Non-trainable params: 0
+Total mult-adds (M): 177.89
+====================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 49.23
+Params size (MB): 11.12
+Estimated Total Size (MB): 61.14
+====================================================================================================
+Average Epoch Train Loss: 1.784393093494399
+Average Epoch Train Loss: 1.6438958939922652
+Average Epoch Train Loss: 1.6659258520959281
+Average Epoch Train Loss: 1.5879465377178166
+Average Epoch Train Loss: 1.640996246554943
+Average Epoch Test Loss: 1.7120257142936521
+Epoch 4, network MobileNetV3, perf mode none
+Average Epoch Train Loss: 1.6043313950257823
+Average Epoch Train Loss: 1.7338321951680298
+Average Epoch Train Loss: 1.6002181637846729
+Average Epoch Train Loss: 1.5255550639558144
+Average Epoch Train Loss: 1.4851174931098863
+Average Epoch Test Loss: 1.6529428148337482
+Epoch 9, network MobileNetV3, perf mode none
+<class 'Architectures.mobilenetv3.MobileNetV3'>, Perforation mode: none, Custom interpolation: False, 468.1222858428955 seconds
+===============================================================================================
+Layer (type:depth-idx)                        Output Shape              Param #
+===============================================================================================
+ResNet                                        [64, 10]                  --
+├─PerforatedConv2d: 1-1                       [64, 64, 16, 16]          9,408
+│    └─InterpolatePerforate: 2-1              [64, 64, 16, 16]          --
+├─BatchNorm2d: 1-2                            [64, 64, 16, 16]          128
+├─ReLU: 1-3                                   [64, 64, 16, 16]          --
+├─MaxPool2d: 1-4                              [64, 64, 8, 8]            --
+├─Sequential: 1-5                             [64, 256, 8, 8]           --
+│    └─Bottleneck: 2-2                        [64, 256, 8, 8]           --
+│    │    └─PerforatedConv2d: 3-1             [64, 64, 8, 8]            4,096
+│    │    └─BatchNorm2d: 3-2                  [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-3                         [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-4             [64, 64, 8, 8]            36,864
+│    │    └─BatchNorm2d: 3-5                  [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-6                         [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-7             [64, 256, 8, 8]           16,384
+│    │    └─BatchNorm2d: 3-8                  [64, 256, 8, 8]           512
+│    │    └─Sequential: 3-9                   [64, 256, 8, 8]           16,896
+│    │    └─ReLU: 3-10                        [64, 256, 8, 8]           --
+│    └─Bottleneck: 2-3                        [64, 256, 8, 8]           --
+│    │    └─PerforatedConv2d: 3-11            [64, 64, 8, 8]            16,384
+│    │    └─BatchNorm2d: 3-12                 [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-13                        [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-14            [64, 64, 8, 8]            36,864
+│    │    └─BatchNorm2d: 3-15                 [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-16                        [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-17            [64, 256, 8, 8]           16,384
+│    │    └─BatchNorm2d: 3-18                 [64, 256, 8, 8]           512
+│    │    └─ReLU: 3-19                        [64, 256, 8, 8]           --
+│    └─Bottleneck: 2-4                        [64, 256, 8, 8]           --
+│    │    └─PerforatedConv2d: 3-20            [64, 64, 8, 8]            16,384
+│    │    └─BatchNorm2d: 3-21                 [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-22                        [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-23            [64, 64, 8, 8]            36,864
+│    │    └─BatchNorm2d: 3-24                 [64, 64, 8, 8]            128
+│    │    └─ReLU: 3-25                        [64, 64, 8, 8]            --
+│    │    └─PerforatedConv2d: 3-26            [64, 256, 8, 8]           16,384
+│    │    └─BatchNorm2d: 3-27                 [64, 256, 8, 8]           512
+│    │    └─ReLU: 3-28                        [64, 256, 8, 8]           --
+├─Sequential: 1-6                             [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-5                        [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-29            [64, 128, 8, 8]           32,768
+│    │    └─BatchNorm2d: 3-30                 [64, 128, 8, 8]           256
+│    │    └─ReLU: 3-31                        [64, 128, 8, 8]           --
+│    │    └─PerforatedConv2d: 3-32            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-33                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-34                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-35            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-36                 [64, 512, 4, 4]           1,024
+│    │    └─Sequential: 3-37                  [64, 512, 4, 4]           132,096
+│    │    └─ReLU: 3-38                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-6                        [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-39            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-40                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-41                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-42            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-43                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-44                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-45            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-46                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-47                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-7                        [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-48            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-49                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-50                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-51            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-52                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-53                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-54            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-55                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-56                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-8                        [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-57            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-58                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-59                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-60            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-61                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-62                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-63            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-64                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-65                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-9                        [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-66            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-67                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-68                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-69            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-70                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-71                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-72            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-73                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-74                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-10                       [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-75            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-76                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-77                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-78            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-79                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-80                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-81            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-82                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-83                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-11                       [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-84            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-85                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-86                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-87            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-88                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-89                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-90            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-91                 [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-92                        [64, 512, 4, 4]           --
+│    └─Bottleneck: 2-12                       [64, 512, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-93            [64, 128, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-94                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-95                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-96            [64, 128, 4, 4]           147,456
+│    │    └─BatchNorm2d: 3-97                 [64, 128, 4, 4]           256
+│    │    └─ReLU: 3-98                        [64, 128, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-99            [64, 512, 4, 4]           65,536
+│    │    └─BatchNorm2d: 3-100                [64, 512, 4, 4]           1,024
+│    │    └─ReLU: 3-101                       [64, 512, 4, 4]           --
+├─Sequential: 1-7                             [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-13                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-102           [64, 256, 4, 4]           131,072
+│    │    └─BatchNorm2d: 3-103                [64, 256, 4, 4]           512
+│    │    └─ReLU: 3-104                       [64, 256, 4, 4]           --
+│    │    └─PerforatedConv2d: 3-105           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-106                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-107                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-108           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-109                [64, 1024, 2, 2]          2,048
+│    │    └─Sequential: 3-110                 [64, 1024, 2, 2]          526,336
+│    │    └─ReLU: 3-111                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-14                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-112           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-113                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-114                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-115           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-116                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-117                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-118           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-119                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-120                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-15                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-121           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-122                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-123                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-124           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-125                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-126                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-127           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-128                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-129                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-16                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-130           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-131                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-132                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-133           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-134                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-135                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-136           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-137                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-138                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-17                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-139           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-140                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-141                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-142           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-143                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-144                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-145           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-146                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-147                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-18                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-148           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-149                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-150                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-151           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-152                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-153                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-154           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-155                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-156                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-19                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-157           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-158                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-159                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-160           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-161                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-162                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-163           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-164                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-165                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-20                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-166           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-167                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-168                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-169           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-170                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-171                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-172           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-173                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-174                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-21                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-175           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-176                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-177                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-178           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-179                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-180                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-181           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-182                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-183                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-22                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-184           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-185                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-186                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-187           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-188                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-189                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-190           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-191                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-192                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-23                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-193           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-194                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-195                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-196           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-197                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-198                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-199           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-200                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-201                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-24                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-202           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-203                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-204                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-205           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-206                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-207                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-208           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-209                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-210                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-25                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-211           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-212                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-213                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-214           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-215                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-216                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-217           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-218                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-219                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-26                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-220           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-221                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-222                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-223           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-224                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-225                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-226           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-227                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-228                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-27                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-229           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-230                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-231                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-232           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-233                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-234                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-235           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-236                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-237                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-28                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-238           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-239                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-240                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-241           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-242                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-243                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-244           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-245                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-246                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-29                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-247           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-248                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-249                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-250           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-251                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-252                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-253           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-254                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-255                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-30                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-256           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-257                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-258                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-259           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-260                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-261                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-262           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-263                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-264                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-31                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-265           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-266                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-267                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-268           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-269                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-270                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-271           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-272                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-273                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-32                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-274           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-275                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-276                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-277           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-278                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-279                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-280           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-281                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-282                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-33                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-283           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-284                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-285                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-286           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-287                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-288                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-289           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-290                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-291                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-34                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-292           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-293                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-294                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-295           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-296                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-297                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-298           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-299                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-300                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-35                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-301           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-302                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-303                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-304           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-305                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-306                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-307           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-308                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-309                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-36                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-310           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-311                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-312                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-313           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-314                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-315                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-316           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-317                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-318                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-37                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-319           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-320                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-321                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-322           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-323                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-324                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-325           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-326                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-327                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-38                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-328           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-329                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-330                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-331           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-332                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-333                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-334           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-335                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-336                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-39                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-337           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-338                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-339                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-340           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-341                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-342                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-343           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-344                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-345                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-40                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-346           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-347                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-348                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-349           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-350                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-351                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-352           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-353                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-354                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-41                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-355           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-356                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-357                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-358           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-359                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-360                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-361           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-362                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-363                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-42                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-364           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-365                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-366                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-367           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-368                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-369                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-370           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-371                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-372                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-43                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-373           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-374                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-375                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-376           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-377                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-378                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-379           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-380                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-381                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-44                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-382           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-383                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-384                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-385           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-386                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-387                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-388           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-389                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-390                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-45                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-391           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-392                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-393                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-394           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-395                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-396                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-397           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-398                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-399                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-46                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-400           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-401                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-402                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-403           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-404                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-405                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-406           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-407                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-408                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-47                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-409           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-410                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-411                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-412           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-413                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-414                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-415           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-416                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-417                       [64, 1024, 2, 2]          --
+│    └─Bottleneck: 2-48                       [64, 1024, 2, 2]          --
+│    │    └─PerforatedConv2d: 3-418           [64, 256, 2, 2]           262,144
+│    │    └─BatchNorm2d: 3-419                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-420                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-421           [64, 256, 2, 2]           589,824
+│    │    └─BatchNorm2d: 3-422                [64, 256, 2, 2]           512
+│    │    └─ReLU: 3-423                       [64, 256, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-424           [64, 1024, 2, 2]          262,144
+│    │    └─BatchNorm2d: 3-425                [64, 1024, 2, 2]          2,048
+│    │    └─ReLU: 3-426                       [64, 1024, 2, 2]          --
+├─Sequential: 1-8                             [64, 2048, 1, 1]          --
+│    └─Bottleneck: 2-49                       [64, 2048, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-427           [64, 512, 2, 2]           524,288
+│    │    └─BatchNorm2d: 3-428                [64, 512, 2, 2]           1,024
+│    │    └─ReLU: 3-429                       [64, 512, 2, 2]           --
+│    │    └─PerforatedConv2d: 3-430           [64, 512, 1, 1]           2,359,296
+│    │    └─BatchNorm2d: 3-431                [64, 512, 1, 1]           1,024
+│    │    └─ReLU: 3-432                       [64, 512, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-433           [64, 2048, 1, 1]          1,048,576
+│    │    └─BatchNorm2d: 3-434                [64, 2048, 1, 1]          4,096
+│    │    └─Sequential: 3-435                 [64, 2048, 1, 1]          2,101,248
+│    │    └─ReLU: 3-436                       [64, 2048, 1, 1]          --
+│    └─Bottleneck: 2-50                       [64, 2048, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-437           [64, 512, 1, 1]           1,048,576
+│    │    └─BatchNorm2d: 3-438                [64, 512, 1, 1]           1,024
+│    │    └─ReLU: 3-439                       [64, 512, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-440           [64, 512, 1, 1]           2,359,296
+│    │    └─BatchNorm2d: 3-441                [64, 512, 1, 1]           1,024
+│    │    └─ReLU: 3-442                       [64, 512, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-443           [64, 2048, 1, 1]          1,048,576
+│    │    └─BatchNorm2d: 3-444                [64, 2048, 1, 1]          4,096
+│    │    └─ReLU: 3-445                       [64, 2048, 1, 1]          --
+│    └─Bottleneck: 2-51                       [64, 2048, 1, 1]          --
+│    │    └─PerforatedConv2d: 3-446           [64, 512, 1, 1]           1,048,576
+│    │    └─BatchNorm2d: 3-447                [64, 512, 1, 1]           1,024
+│    │    └─ReLU: 3-448                       [64, 512, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-449           [64, 512, 1, 1]           2,359,296
+│    │    └─BatchNorm2d: 3-450                [64, 512, 1, 1]           1,024
+│    │    └─ReLU: 3-451                       [64, 512, 1, 1]           --
+│    │    └─PerforatedConv2d: 3-452           [64, 2048, 1, 1]          1,048,576
+│    │    └─BatchNorm2d: 3-453                [64, 2048, 1, 1]          4,096
+│    │    └─ReLU: 3-454                       [64, 2048, 1, 1]          --
+├─AdaptiveAvgPool2d: 1-9                      [64, 2048, 1, 1]          --
+├─Linear: 1-10                                [64, 10]                  20,490
+===============================================================================================
+Total params: 58,164,298
+Trainable params: 58,164,298
+Non-trainable params: 0
+Total mult-adds (M): 11.00
+===============================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 235.67
+Params size (MB): 0.69
+Estimated Total Size (MB): 237.15
+===============================================================================================
+Average Epoch Train Loss: 2.4066191628511735
+Average Epoch Train Loss: 2.436683014480352
+Average Epoch Train Loss: 2.3280871460481865
+Average Epoch Train Loss: 2.267193681654516
+Average Epoch Train Loss: 2.1777765700013334
+Average Epoch Test Loss: 2.17409188716883
+Epoch 4, network ResNet, perf mode both
+Average Epoch Train Loss: 2.1179537820612553
+Average Epoch Train Loss: 2.0369067348084102
+Average Epoch Train Loss: 1.9179215193812233
+Average Epoch Train Loss: 1.825169613486842
