@@ -101,10 +101,11 @@ class PerforatedConv2d(nn.Module):
         self.bias = self.conv.bias
 
     # noinspection PyTypeChecker
-    def forward(self, x, current_perforation="both"):
+    def forward(self, x, current_perforation=None):
 
         # self.perforation = current_perforation
-        current_perforation = self.perforation
+        if current_perforation is None:
+            current_perforation = self.perforation
         out_x = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // self.conv.stride[0]
         out_y = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // self.conv.stride[0]
         out_x_2 = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // (

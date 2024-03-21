@@ -3,6 +3,7 @@ from typing import Any, Callable, List, Optional
 
 import torch
 from torch import nn, Tensor
+from torch.nn import Sequential
 
 from .conv2dNormActivation import Conv2dNormActivation
 from torchvision.transforms._presets import ImageClassification
@@ -40,7 +41,7 @@ class InvertedResidual(nn.Module):
             # pw
             layers.append(
                 Conv2dNormActivation(inp, hidden_dim, kernel_size=1, norm_layer=norm_layer, activation_layer=nn.ReLU6,
-                                     perforation_mode=perforation_mode, use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                     perforation_mode=perforation_mode[-3], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
             )
         layers.extend(
             [
@@ -52,12 +53,12 @@ class InvertedResidual(nn.Module):
                     groups=hidden_dim,
                     norm_layer=norm_layer,
                     activation_layer=nn.ReLU6,
-                    perforation_mode=perforation_mode,
+                    perforation_mode=perforation_mode[-2],
                     use_custom_interp=use_custom_interp,
                     grad_conv=grad_conv
                 ),
                 # pw-linear
-                PerforatedConv2d(hidden_dim, oup, 1, 1, 0, bias=False, perforation_mode=perforation_mode,
+                PerforatedConv2d(hidden_dim, oup, 1, 1, 0, bias=False, perforation_mode=perforation_mode[-1],
                                  use_custom_interp=use_custom_interp,grad_conv=grad_conv),
                 norm_layer(oup),
             ]
@@ -128,9 +129,9 @@ class MobileNetV2(nn.Module):
 
         self.perforation = perforation_mode
         if type(self.perforation) == str:
-            self.perforation = [self.perforation] * (sum([x[2] for x in inverted_residual_setting]) + 2)
-        if sum([x[2] for x in inverted_residual_setting]) + 2 != len(self.perforation):
-            raise ValueError(f"The perforation list length should equal the number of conv layers, {sum([x[2] for x in inverted_residual_setting]) + 2}")
+            self.perforation = [self.perforation] * (sum([x[2] * (2 if x[0] == 1 else 3) for x in inverted_residual_setting]) + 2)
+        if sum([x[2] * (2 if x[0] == 1 else 3) for x in inverted_residual_setting]) + 2 != len(self.perforation):
+            raise ValueError(f"The perforation list length should equal the number of conv layers, {sum([x[2] * (2 if x[0] == 1 else 3) for x in inverted_residual_setting]) + 2}")
         # only check the first element, assuming user knows t,c,n,s are required
         if len(inverted_residual_setting) == 0 or len(inverted_residual_setting[0]) != 4:
             raise ValueError(
@@ -145,14 +146,18 @@ class MobileNetV2(nn.Module):
                                  perforation_mode=self.perforation[0], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
         ]
         # building inverted residual blocks
-        for t, c, n, s in inverted_residual_setting:
+        cnt = 1
+        for ind, (t, c, n, s) in enumerate(inverted_residual_setting):
             output_channel = _make_divisible(c * width_mult, round_nearest)
+            n_conv_in_block = (2 if t == 1 else 3)
             for i in range(n):
                 stride = s if i == 0 else 1
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t, norm_layer=norm_layer,
-                                      perforation_mode=self.perforation[n * i + 1],
+                                      perforation_mode=self.perforation[cnt:cnt + n_conv_in_block],
                                       use_custom_interp=use_custom_interp, grad_conv=grad_conv))
+                cnt += n_conv_in_block
                 input_channel = output_channel
+
         # building last several layers
         features.append(
             Conv2dNormActivation(
@@ -191,7 +196,32 @@ class MobileNetV2(nn.Module):
         x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
-
+    def _set_perforation(self, perf):
+        self.perforation = perf
+        cnt = 0
+        for layer in self.features:
+            if type(layer) == Conv2dNormActivation:
+                layer[0].perforation = perf[cnt]
+                cnt += 1
+            elif type(layer) == InvertedResidual:
+                for c in layer.conv:
+                    if type(c) == Conv2dNormActivation:
+                        c[0].perforation = perf[cnt]
+                        cnt += 1
+                    elif type(c) == PerforatedConv2d:
+                        c.perforation = perf[cnt]
+                        cnt += 1
+            elif type(layer) == Sequential:
+                for c in layer:
+                    if type(c) == Conv2dNormActivation:
+                        c[0].perforation = perf[cnt]
+                        cnt += 1
+                    if type(c) == InvertedResidual:
+                        for cc in layer[0].conv:
+                            if type(cc) == Conv2dNormActivation:
+                                cc[0].perforation = perf[cnt]
+                            #elif type(cc) ==
+                            cnt += 1
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
 

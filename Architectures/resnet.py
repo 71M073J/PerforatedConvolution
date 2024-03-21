@@ -4,9 +4,11 @@ from typing import Any, Callable, List, Optional, Type, Union
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.nn import Sequential
 from torchvision.models._api import WeightsEnum
 from torchvision.models._utils import _ovewrite_named_param
 from .PerforatedConv2d import PerforatedConv2d
+from .conv2dNormActivation import Conv2dNormActivation
 
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1,
@@ -284,6 +286,24 @@ class ResNet(nn.Module):
             )
 
         return nn.Sequential(*layers)
+    def _set_perforation(self, perf):
+        self.perforation = perf
+        cnt = 1
+        self.conv1.perforation = perf[0]
+        ls = [self.layer1, self.layer2, self.layer3, self.layer4]
+        for l in ls:
+            if type(l) == BasicBlock:
+                l[0].conv1 = perf[cnt]
+                cnt += 1
+                l[0].conv2 = perf[cnt]
+                cnt += 1
+            elif type(l) == Bottleneck:
+                l[0].conv1 = perf[cnt]
+                cnt += 1
+                l[0].conv2 = perf[cnt]
+                cnt += 1
+                l[0].conv3 = perf[cnt]
+                cnt += 1
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
@@ -303,7 +323,7 @@ class ResNet(nn.Module):
 
         return x
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor, ) -> Tensor:
         return self._forward_impl(x)
 
 

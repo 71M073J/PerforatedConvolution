@@ -3,13 +3,55 @@ from typing import Any, Callable, List, Optional, Sequence
 
 import torch
 from torch import nn, Tensor
+from torch.nn import Sequential
 
-from torchvision.ops.misc import SqueezeExcitation as SElayer
+#from torchvision.ops.misc import SqueezeExcitation as SElayer
 from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import WeightsEnum
 from torchvision.models._utils import _make_divisible, _ovewrite_named_param
 from .conv2dNormActivation import Conv2dNormActivation
 from .PerforatedConv2d import PerforatedConv2d
+
+class SqueezeExcitation(torch.nn.Module):
+    """
+    This block implements the Squeeze-and-Excitation block from https://arxiv.org/abs/1709.01507 (see Fig. 1).
+    Parameters ``activation``, and ``scale_activation`` correspond to ``delta`` and ``sigma`` in eq. 3.
+
+    Args:
+        input_channels (int): Number of channels in the input image
+        squeeze_channels (int): Number of squeeze channels
+        activation (Callable[..., torch.nn.Module], optional): ``delta`` activation. Default: ``torch.nn.ReLU``
+        scale_activation (Callable[..., torch.nn.Module]): ``sigma`` activation. Default: ``torch.nn.Sigmoid``
+    """
+
+    def __init__(
+        self,
+        input_channels: int,
+        squeeze_channels: int,
+        activation: Callable[..., torch.nn.Module] = torch.nn.ReLU,
+        scale_activation: Callable[..., torch.nn.Module] = torch.nn.Sigmoid, perforation_mode= ("both", "both"),
+                 use_custom_interp: bool = False,grad_conv: bool = True,
+    ) -> None:
+        super().__init__()
+        _log_api_usage_once(self)
+        self.avgpool = torch.nn.AdaptiveAvgPool2d(1)
+        self.fc1 = PerforatedConv2d(input_channels, squeeze_channels, 1, perforation_mode=perforation_mode[0],
+                                    use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+        self.fc2 = PerforatedConv2d(squeeze_channels, input_channels, 1, perforation_mode=perforation_mode[1],
+                                    use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+        self.activation = activation()
+        self.scale_activation = scale_activation()
+
+    def _scale(self, input: Tensor) -> Tensor:
+        scale = self.avgpool(input)
+        scale = self.fc1(scale)
+        scale = self.activation(scale)
+        scale = self.fc2(scale)
+        return self.scale_activation(scale)
+
+    def forward(self, input: Tensor) -> Tensor:
+        scale = self._scale(input)
+        return scale * input
 
 class InvertedResidualConfig:
     # Stores information listed at Tables 1 and 2 of the MobileNetV3 paper
@@ -50,7 +92,7 @@ class InvertedResidual(nn.Module):
             self,
             cnf: InvertedResidualConfig,
             norm_layer: Callable[..., nn.Module],
-            se_layer: Callable[..., nn.Module] = partial(SElayer, scale_activation=nn.Hardsigmoid),
+            se_layer: Callable[..., nn.Module] = partial(SqueezeExcitation, scale_activation=nn.Hardsigmoid),
     ):
         super().__init__()
         perforation_mode = cnf.perforation_mode
@@ -63,16 +105,17 @@ class InvertedResidual(nn.Module):
 
         layers: List[nn.Module] = []
         activation_layer = nn.Hardswish if cnf.use_hs else nn.ReLU
-
+        eq_channels = cnf.expanded_channels != cnf.input_channels
         # expand
-        if cnf.expanded_channels != cnf.input_channels:
+        if eq_channels:
             layers.append(
                 Conv2dNormActivation(
                     cnf.input_channels,
                     cnf.expanded_channels,
                     kernel_size=1,
                     norm_layer=norm_layer,
-                    activation_layer=activation_layer, perforation_mode=perforation_mode[-3],use_custom_interp=use_custom_interp, grad_conv=grad_conv
+                    activation_layer=activation_layer, perforation_mode=perforation_mode[0]
+                    ,use_custom_interp=use_custom_interp, grad_conv=grad_conv
                 )
             )
 
@@ -88,19 +131,22 @@ class InvertedResidual(nn.Module):
                 groups=cnf.expanded_channels,
                 norm_layer=norm_layer,
                 activation_layer=activation_layer,
-                perforation_mode=perforation_mode[-2],
+                perforation_mode=perforation_mode[1 if eq_channels else 0],
                 use_custom_interp=use_custom_interp,grad_conv=grad_conv
             )
         )
         if cnf.use_se:
             squeeze_channels = _make_divisible(cnf.expanded_channels // 4, 8)
-            layers.append(se_layer(cnf.expanded_channels, squeeze_channels))
+            layers.append(se_layer(cnf.expanded_channels, squeeze_channels,
+                                   perforation_mode=perforation_mode[2 if eq_channels else 1:4 if eq_channels else 3],
+                                   use_custom_interp=use_custom_interp,
+                                   grad_conv=grad_conv))
 
         # project
         layers.append(
             Conv2dNormActivation(
                 cnf.expanded_channels, cnf.out_channels, kernel_size=1, norm_layer=norm_layer, activation_layer=None,
-                perforation_mode=perforation_mode[-1],use_custom_interp=use_custom_interp,grad_conv=grad_conv
+                perforation_mode=perforation_mode[4 if (eq_channels and cnf.use_se) else (3 if cnf.use_se else 1)],use_custom_interp=use_custom_interp,grad_conv=grad_conv
             )
         )
 
@@ -139,6 +185,7 @@ class MobileNetV3(nn.Module):
             norm_layer (Optional[Callable[..., nn.Module]]): Module specifying the normalization layer to use
             dropout (float): The droupout probability
         """
+        self.size = kwargs["size"]
         super().__init__()
         self.perforation = perforation_mode
         self.use_custom_interp = use_custom_interp
@@ -163,9 +210,9 @@ class MobileNetV3(nn.Module):
 
         self.perforation = perforation_mode
         if type(self.perforation) == str:
-            self.perforation = [self.perforation] * (len(inverted_residual_setting) + 2)
-        if len(inverted_residual_setting) + 2 != len(self.perforation):
-            raise ValueError(f"The perforation list length should equal the number of conv layers")
+            self.perforation = [self.perforation] * (sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2)
+        if (sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2) != len(self.perforation):
+            raise ValueError(f"The perforation list length should equal the number of conv layers, {(sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2)}")
         # building first layer
         firstconv_output_channels = inverted_residual_setting[0].input_channels
         layers.append(
@@ -176,14 +223,14 @@ class MobileNetV3(nn.Module):
                 stride=2,
                 norm_layer=norm_layer,
                 activation_layer=nn.Hardswish,
-                perforation_mode=perforation_mode,
+                perforation_mode=self.perforation[0],
                 use_custom_interp=use_custom_interp,
                 grad_conv=grad_conv
             )
         )
 
         # building inverted residual blocks
-        for cnf in inverted_residual_setting:
+        for ii, cnf in enumerate(inverted_residual_setting):
             layers.append(block(cnf, norm_layer))
 
         # building last several layers
@@ -196,7 +243,7 @@ class MobileNetV3(nn.Module):
                 kernel_size=1,
                 norm_layer=norm_layer,
                 activation_layer=nn.Hardswish,
-                perforation_mode=perforation_mode,
+                perforation_mode=self.perforation[-1],
                 use_custom_interp=use_custom_interp,
                 grad_conv=grad_conv
 
@@ -223,7 +270,39 @@ class MobileNetV3(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
+    def _set_perforation(self, perf):
+        self.perforation = perf
 
+        cnt = 0
+        for layer in self.features:
+            if type(layer) == Conv2dNormActivation:
+                layer[0].perforation = perf[cnt]
+                cnt += 1
+            elif type(layer) == InvertedResidual:
+                for c in layer.block:
+                    if type(c) == Conv2dNormActivation:
+                        c[0].perforation = perf[cnt]
+                        cnt += 1
+                    elif type(c) == SqueezeExcitation:
+                        c.fc1.perforation = perf[cnt]
+                        cnt += 1
+                        c.fc2.perforation = perf[cnt]
+                        cnt += 1
+
+                    elif type(c) == PerforatedConv2d:
+                        c.perforation = perf[cnt]
+                        cnt += 1
+            elif type(layer) == Sequential:
+                for c in layer:
+                    if type(c) == Conv2dNormActivation:
+                        c[0].perforation = perf[cnt]
+                        cnt += 1
+                    if type(c) == InvertedResidual:
+                        for cc in layer[0].conv:
+                            if type(cc) == Conv2dNormActivation:
+                                cc[0].perforation = perf[cnt]
+                            #elif type(cc) ==
+                            cnt += 1
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.features(x)
 
@@ -252,47 +331,47 @@ def _mobilenet_v3_conf(
     if arch == "mobilenet_v3_large":
 
         if type(perforation_mode) == str:
-            perforation_mode = [perforation_mode] * 45
+            perforation_mode = [perforation_mode] * (60 + 2)
 
-        if 45 != len(perforation_mode):
-            raise ValueError(f"The perforation list length should equal the number of conv layers (45)")
+        if 62 != len(perforation_mode):
+            raise ValueError(f"The perforation list length should equal the number of conv layers (62)")
         inverted_residual_setting = [
-            bneck_conf(16, 3, 16, 16, False, "RE", 1, 1, perforation_mode=perforation_mode[0:2],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(16, 3, 64, 24, False, "RE", 2, 1, perforation_mode=perforation_mode[2:5],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C1
-            bneck_conf(24, 3, 72, 24, False, "RE", 1, 1, perforation_mode=perforation_mode[5:8],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(24, 5, 72, 40, True, "RE", 2, 1, perforation_mode=perforation_mode[8:11], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C2
-            bneck_conf(40, 5, 120, 40, True, "RE", 1, 1, perforation_mode=perforation_mode[11:14],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(40, 5, 120, 40, True, "RE", 1, 1, perforation_mode=perforation_mode[14:17], use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(40, 3, 240, 80, False, "HS", 2, 1, perforation_mode=perforation_mode[17:20], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C3
-            bneck_conf(80, 3, 200, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[20:23], use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(80, 3, 184, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[23:26],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(80, 3, 184, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[26:29],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(80, 3, 480, 112, True, "HS", 1, 1, perforation_mode=perforation_mode[29:32],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(112, 3, 672, 112, True, "HS", 1, 1, perforation_mode=perforation_mode[32:35],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(112, 5, 672, 160 // reduce_divider, True, "HS", 2, dilation, perforation_mode=perforation_mode[35:38],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C4
-            bneck_conf(160 // reduce_divider, 5, 960 // reduce_divider, 160 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[38:41],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(160 // reduce_divider, 5, 960 // reduce_divider, 160 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[41:44],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(16, 3, 16, 16, False, "RE", 1, 1, perforation_mode=perforation_mode[1:3],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(16, 3, 64, 24, False, "RE", 2, 1, perforation_mode=perforation_mode[3:6],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C1
+            bneck_conf(24, 3, 72, 24, False, "RE", 1, 1, perforation_mode=perforation_mode[6:9],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(24, 5, 72, 40, True, "RE", 2, 1, perforation_mode=perforation_mode[9:14], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C2
+            bneck_conf(40, 5, 120, 40, True, "RE", 1, 1, perforation_mode=perforation_mode[14:19],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(40, 5, 120, 40, True, "RE", 1, 1, perforation_mode=perforation_mode[19:24], use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(40, 3, 240, 80, False, "HS", 2, 1, perforation_mode=perforation_mode[24:27], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C3
+            bneck_conf(80, 3, 200, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[27:30], use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(80, 3, 184, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[30:33],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(80, 3, 184, 80, False, "HS", 1, 1, perforation_mode=perforation_mode[33:36],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(80, 3, 480, 112, True, "HS", 1, 1, perforation_mode=perforation_mode[36:41],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(112, 3, 672, 112, True, "HS", 1, 1, perforation_mode=perforation_mode[41:46],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(112, 5, 672, 160 // reduce_divider, True, "HS", 2, dilation, perforation_mode=perforation_mode[46:51],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C4
+            bneck_conf(160 // reduce_divider, 5, 960 // reduce_divider, 160 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[51:56],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(160 // reduce_divider, 5, 960 // reduce_divider, 160 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[56:61],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
         ]
         last_channel = adjust_channels(1280 // reduce_divider)  # C5
     elif arch == "mobilenet_v3_small":
 
         if type(perforation_mode) == str:
-            perforation_mode = [perforation_mode] * 33
+            perforation_mode = [perforation_mode] * 52
 
-        if 11 != len(perforation_mode):
-            raise ValueError(f"The perforation list length should equal the number of conv layers (33)")
+        if 52 != len(perforation_mode):
+            raise ValueError(f"The perforation list length should equal the number of conv layers (52)")
         inverted_residual_setting = [
-            bneck_conf(16, 3, 16, 16, True, "RE", 2, 1, perforation_mode=perforation_mode[0:2],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C1
-            bneck_conf(16, 3, 72, 24, False, "RE", 2, 1, perforation_mode=perforation_mode[2:5],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C2
-            bneck_conf(24, 3, 88, 24, False, "RE", 1, 1, perforation_mode=perforation_mode[5:8],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(24, 5, 96, 40, True, "HS", 2, 1, perforation_mode=perforation_mode[8:11], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C3
-            bneck_conf(40, 5, 240, 40, True, "HS", 1, 1, perforation_mode=perforation_mode[11:14],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(40, 5, 240, 40, True, "HS", 1, 1, perforation_mode=perforation_mode[14:17],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(40, 5, 120, 48, True, "HS", 1, 1, perforation_mode=perforation_mode[17:20],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(48, 5, 144, 48, True, "HS", 1, 1, perforation_mode=perforation_mode[20:23],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(48, 5, 288, 96 // reduce_divider, True, "HS", 2, dilation, perforation_mode=perforation_mode[23:26],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C4
-            bneck_conf(96 // reduce_divider, 5, 576 // reduce_divider, 96 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[26:29],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
-            bneck_conf(96 // reduce_divider, 5, 576 // reduce_divider, 96 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[29:32],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(16, 3, 16, 16, True, "RE", 2, 1, perforation_mode=perforation_mode[1:5],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C1
+            bneck_conf(16, 3, 72, 24, False, "RE", 2, 1, perforation_mode=perforation_mode[5:8],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C2
+            bneck_conf(24, 3, 88, 24, False, "RE", 1, 1, perforation_mode=perforation_mode[8:11],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(24, 5, 96, 40, True, "HS", 2, 1, perforation_mode=perforation_mode[11:16], use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C3
+            bneck_conf(40, 5, 240, 40, True, "HS", 1, 1, perforation_mode=perforation_mode[16:21],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(40, 5, 240, 40, True, "HS", 1, 1, perforation_mode=perforation_mode[21:26],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(40, 5, 120, 48, True, "HS", 1, 1, perforation_mode=perforation_mode[26:31],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(48, 5, 144, 48, True, "HS", 1, 1, perforation_mode=perforation_mode[31:36],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(48, 5, 288, 96 // reduce_divider, True, "HS", 2, dilation, perforation_mode=perforation_mode[36:41],use_custom_interp=use_custom_interp, grad_conv=grad_conv),  # C4
+            bneck_conf(96 // reduce_divider, 5, 576 // reduce_divider, 96 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[41:46],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+            bneck_conf(96 // reduce_divider, 5, 576 // reduce_divider, 96 // reduce_divider, True, "HS", 1, dilation, perforation_mode=perforation_mode[46:51],use_custom_interp=use_custom_interp, grad_conv=grad_conv),
         ]
 
         last_channel = adjust_channels(1024 // reduce_divider)  # C5
@@ -347,7 +426,7 @@ def mobilenet_v3_large(
     """
 
     inverted_residual_setting, last_channel = _mobilenet_v3_conf("mobilenet_v3_large", **kwargs)
-    return _mobilenet_v3(inverted_residual_setting, last_channel, weights, progress, **kwargs)
+    return _mobilenet_v3(inverted_residual_setting, last_channel, weights, progress, size=45,**kwargs)
 
 
 def mobilenet_v3_small(
@@ -375,4 +454,4 @@ def mobilenet_v3_small(
     """
 
     inverted_residual_setting, last_channel = _mobilenet_v3_conf("mobilenet_v3_small", **kwargs)
-    return _mobilenet_v3(inverted_residual_setting, last_channel, weights, progress, **kwargs)
+    return _mobilenet_v3(inverted_residual_setting, last_channel, weights, progress, size=33, **kwargs)
