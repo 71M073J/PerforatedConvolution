@@ -161,13 +161,14 @@ def compare_speed():
     # device = "cpu"
     in_channels = 64
     backwards = True
-    for in_channels in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+    for in_channels in [2, 64, 256]:
         l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
-        l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both").to(device)
-        l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
-        l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="second").to(device)
+        l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=True).to(device)
+        l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=False).to(device)
+        #l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
+        #l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="second").to(device)
         l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="none").to(device)
-        ls = [l1, l2, l3, l4, l5]
+        ls = [l1, l2, l3,  l5]
         os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
         total_times = [0, 0, 0, 0, 0]
         times = [[], [], [], [], []]
@@ -209,11 +210,12 @@ def compare_speed():
         import matplotlib.pyplot as plt
 
         print(f"Normal convLayer: average of {total_times[0] / len(times[0])} seconds")
-        for i in range(4):
+        for i in range(len(ls) - 1):
+            print(ls[i+1].kind)
             print(
                 f"Perforated convLayer: {ls[i + 1].perforation}: average of {total_times[i + 1] / len(times[i + 1])} seconds")
         plt.plot(times[0], label=f"Normal Conv, {int(1000 * (total_times[0] / len(times[0]) * 1000)) / 1000}ms avg")
-        for i in range(4):
+        for i in range(len(ls) - 1):
             plt.plot(times[i + 1],
                      label=f"PerfConv {ls[1 + i].perforation}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
         plt.legend()
@@ -435,7 +437,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     plt.clf()
 
 if __name__ == "__main__":
-
+    compare_speed()
+    quit()
     from Architectures.mobilenetv2 import MobileNetV2
     from Architectures.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_small, MobileNetV3
     from Architectures.resnet import resnet152, resnet18, ResNet
@@ -467,27 +470,27 @@ if __name__ == "__main__":
         # mobilenet_v3_large(num_classes=10, perforation_mode="both", use_custom_interp=False),
         # mobilenet_v3_large(num_classes=10, perforation_mode="none"),
         resnet18(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        resnet18(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        resnet18(num_classes=10, perforation_mode="both", use_custom_interp=False),
-        resnet18(num_classes=10, perforation_mode="none"),
+        #resnet18(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
+        #resnet18(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        #resnet18(num_classes=10, perforation_mode="none"),
         # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
         # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
         # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=False),
         # resnet152(num_classes=10, perforation_mode="none"),
     ]
+
     for net in nets:
-        # TODO make profiler spit out more data
-        # TODO run convergence tests on fri machine
-        # TODO resnet
-        t = time.time()
-        vary_perf = "random"
-        test_net(net, batch_size=128, epochs=2, do_profiling=False, summarise=False, verbose=True, make_imgs=False,
-                 plot_loss=True, vary_perf=vary_perf,
-                 run_name=type(net).__name__ +
-                          (f"-Vary_perforation-{vary_perf}-Grad_conv-{str(net.grad_conv) if net.use_custom_interp else ''}-" if vary_perf is not None else ("" if net.perforation[0] == "none" else ("" + net.perforation[0] + (
-                              ("-Grad_conv-" + str(net.grad_conv)) if net.use_custom_interp else "")))))
-        print(
-            f"{type(net)}, Perforation mode: {net.perforation}, Custom interpolation: {net.use_custom_interp}, {time.time() - t} seconds")
+        for vary_perf in [None, "random", "incremental"]:
+            # TODO make profiler spit out more data
+            # TODO run convergence tests on fri machine
+            t = time.time()
+            test_net(net, batch_size=128, epochs=30, do_profiling=False, summarise=False, verbose=True, make_imgs=False,
+                     plot_loss=True, vary_perf=vary_perf,
+                     run_name=type(net).__name__ +
+                              (f"-Vary_perforation-{vary_perf}-Grad_conv-{str(net.grad_conv) if net.use_custom_interp else ''}-" if vary_perf is not None else ("" if net.perforation[0] == "none" else ("" + net.perforation[0] + (
+                                  ("-Grad_conv-" + str(net.grad_conv)) if net.use_custom_interp else "")))))
+            print(
+                f"{type(net)}, Perforation mode: {net.perforation}, Custom interpolation: {net.use_custom_interp}, {time.time() - t} seconds")
 
     # test_net(resnet152(num_classes=10, perforation_mode="both"), batch_size=32)
 

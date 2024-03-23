@@ -12,8 +12,7 @@ from .conv2dNormActivation import Conv2dNormActivation
 
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1,
-            perforation_mode: str = "both",
-            use_custom_interp: bool = False, grad_conv: bool = True) -> PerforatedConv2d:
+            perforation_mode: str = "both", grad_conv: bool = True) -> PerforatedConv2d:
     """3x3 convolution with padding"""
     return PerforatedConv2d(
         in_planes,
@@ -25,16 +24,16 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
         bias=False,
         dilation=dilation,
         perforation_mode=perforation_mode,
-        use_custom_interp=use_custom_interp, grad_conv=grad_conv
+          grad_conv=grad_conv
     )
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1, perforation_mode: str = "both",
-            use_custom_interp: bool = False, grad_conv: bool = True
+            grad_conv: bool = True
             ) -> PerforatedConv2d:
     """1x1 convolution"""
     return PerforatedConv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False,
-                            perforation_mode=perforation_mode, use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                            perforation_mode=perforation_mode,   grad_conv=grad_conv)
 
 
 class BasicBlock(nn.Module):
@@ -50,7 +49,7 @@ class BasicBlock(nn.Module):
             base_width: int = 64,
             dilation: int = 1,
             norm_layer: Optional[Callable[..., nn.Module]] = None, perforation_mode: list = "both",
-            use_custom_interp: bool = False, grad_conv: bool = True
+             grad_conv: bool = True
     ) -> None:
         super().__init__()
         if norm_layer is None:
@@ -60,10 +59,10 @@ class BasicBlock(nn.Module):
         if dilation > 1:
             raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv3x3(inplanes, planes, stride, perforation_mode=perforation_mode[0], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+        self.conv1 = conv3x3(inplanes, planes, stride, perforation_mode=perforation_mode[0],   grad_conv=grad_conv)
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes, perforation_mode=perforation_mode[1], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+        self.conv2 = conv3x3(planes, planes, perforation_mode=perforation_mode[1],   grad_conv=grad_conv)
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
@@ -107,20 +106,20 @@ class Bottleneck(nn.Module):
             dilation: int = 1,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             perforation_mode: str = "both",
-            use_custom_interp: bool = False, grad_conv: bool = True) -> None:
+             grad_conv: bool = True) -> None:
         super().__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.0)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv1x1(inplanes, width, perforation_mode=perforation_mode[0], use_custom_interp=use_custom_interp,
+        self.conv1 = conv1x1(inplanes, width, perforation_mode=perforation_mode[0],
                              grad_conv=grad_conv)
         self.bn1 = norm_layer(width)
         self.conv2 = conv3x3(width, width, stride, groups, dilation, perforation_mode=perforation_mode[1],
-                             use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                               grad_conv=grad_conv)
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion, perforation_mode=perforation_mode[2],
-                             use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                               grad_conv=grad_conv)
         self.bn3 = norm_layer(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -161,11 +160,10 @@ class ResNet(nn.Module):
             replace_stride_with_dilation: Optional[List[bool]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             perforation_mode="both",
-            use_custom_interp: bool = False, grad_conv: bool = True
+            grad_conv: bool = True
     ) -> None:
         super().__init__()
         self.perforation = perforation_mode
-        self.use_custom_interp = use_custom_interp
         self.grad_conv = grad_conv
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -191,29 +189,29 @@ class ResNet(nn.Module):
         if ((sum(layers) * (conv_in_block + 1)) + 1) != len(self.perforation):
             raise ValueError(f"The perforation list length should equal the number of conv layers ({(((sum(layers) * (conv_in_block + 1)) + 1))})")
         self.conv1 = PerforatedConv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False,
-                                      perforation_mode=self.perforation[0], use_custom_interp=use_custom_interp,
+                                      perforation_mode=self.perforation[0],
                                       grad_conv=grad_conv)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0],
                                        perforation_mode=self.perforation[1:(layers[0] * conv_in_block) + 2],
-                                       use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                         grad_conv=grad_conv)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0],
                                        perforation_mode=self.perforation[(layers[0] * conv_in_block) + 2:
                                                                          (layers[1] + layers[0]) * conv_in_block + 3],
-                                       use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                         grad_conv=grad_conv)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1],
                                        perforation_mode=
                                        self.perforation[(layers[1] + layers[0]) * conv_in_block + 3:
                                                         (layers[2] + layers[1] + layers[0]) * conv_in_block + 4],
-                                       use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                         grad_conv=grad_conv)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2],
                                        perforation_mode=
                                        self.perforation[(layers[2] + layers[1] + layers[0]) * conv_in_block + 4:
                                                         (layers[3] + layers[2] + layers[1] + layers[
                                                             0]) * conv_in_block + 5],
-                                       use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                         grad_conv=grad_conv)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -241,7 +239,6 @@ class ResNet(nn.Module):
             blocks: int,
             stride: int = 1,
             dilate: bool = False, perforation_mode: str = "both",
-            use_custom_interp: bool = False,
             grad_conv: bool = True
     ) -> nn.Sequential:
         norm_layer = self._norm_layer
@@ -259,7 +256,7 @@ class ResNet(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 conv1x1(self.inplanes, planes * block.expansion, stride, perforation_mode=perforation_mode[0],
-                        use_custom_interp=use_custom_interp, grad_conv=grad_conv),
+                          grad_conv=grad_conv),
                 norm_layer(planes * block.expansion),
             )
 
@@ -267,7 +264,7 @@ class ResNet(nn.Module):
         layers.append(
             block(
                 self.inplanes, planes, stride, downsample, self.groups, self.base_width, previous_dilation, norm_layer,
-                perforation_mode[1:conv_in_block + 1], use_custom_interp=use_custom_interp, grad_conv=grad_conv
+                perforation_mode[1:conv_in_block + 1],   grad_conv=grad_conv
             )
         )
         self.inplanes = planes * block.expansion
@@ -281,7 +278,7 @@ class ResNet(nn.Module):
                     dilation=self.dilation,
                     norm_layer=norm_layer,
                     perforation_mode=perforation_mode[1 + conv_in_block * i:1 + conv_in_block * (i + 1)],
-                    use_custom_interp=use_custom_interp, grad_conv=grad_conv
+                      grad_conv=grad_conv
                 )
             )
 

@@ -22,7 +22,6 @@ class InvertedResidual(nn.Module):
             self, inp: int, oup: int, stride: int, expand_ratio: int,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             perforation_mode="both",
-            use_custom_interp: bool = False,
             grad_conv: bool = True
     ) -> None:
         super().__init__()
@@ -41,7 +40,7 @@ class InvertedResidual(nn.Module):
             # pw
             layers.append(
                 Conv2dNormActivation(inp, hidden_dim, kernel_size=1, norm_layer=norm_layer, activation_layer=nn.ReLU6,
-                                     perforation_mode=perforation_mode[-3], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                     perforation_mode=perforation_mode[-3], grad_conv=grad_conv)
             )
         layers.extend(
             [
@@ -54,12 +53,11 @@ class InvertedResidual(nn.Module):
                     norm_layer=norm_layer,
                     activation_layer=nn.ReLU6,
                     perforation_mode=perforation_mode[-2],
-                    use_custom_interp=use_custom_interp,
                     grad_conv=grad_conv
                 ),
                 # pw-linear
                 PerforatedConv2d(hidden_dim, oup, 1, 1, 0, bias=False, perforation_mode=perforation_mode[-1],
-                                 use_custom_interp=use_custom_interp,grad_conv=grad_conv),
+                                 grad_conv=grad_conv),
                 norm_layer(oup),
             ]
         )
@@ -85,7 +83,6 @@ class MobileNetV2(nn.Module):
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             dropout: float = 0.2,
             perforation_mode="both",
-            use_custom_interp: bool = False,
             grad_conv: bool = True
     ) -> None:
         """
@@ -104,7 +101,6 @@ class MobileNetV2(nn.Module):
         """
         super().__init__()
         _log_api_usage_once(self)
-        self.use_custom_interp = use_custom_interp
         self.grad_conv = grad_conv
         if block is None:
             block = InvertedResidual
@@ -143,7 +139,7 @@ class MobileNetV2(nn.Module):
         self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
         features: List[nn.Module] = [
             Conv2dNormActivation(3, input_channel, stride=2, norm_layer=norm_layer, activation_layer=nn.ReLU6,
-                                 perforation_mode=self.perforation[0], use_custom_interp=use_custom_interp, grad_conv=grad_conv)
+                                 perforation_mode=self.perforation[0], grad_conv=grad_conv)
         ]
         # building inverted residual blocks
         cnt = 1
@@ -154,7 +150,7 @@ class MobileNetV2(nn.Module):
                 stride = s if i == 0 else 1
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t, norm_layer=norm_layer,
                                       perforation_mode=self.perforation[cnt:cnt + n_conv_in_block],
-                                      use_custom_interp=use_custom_interp, grad_conv=grad_conv))
+                                       grad_conv=grad_conv))
                 cnt += n_conv_in_block
                 input_channel = output_channel
 
@@ -162,7 +158,7 @@ class MobileNetV2(nn.Module):
         features.append(
             Conv2dNormActivation(
                 input_channel, self.last_channel, kernel_size=1, norm_layer=norm_layer, activation_layer=nn.ReLU6,
-                perforation_mode=self.perforation[-1], use_custom_interp=use_custom_interp, grad_conv=grad_conv
+                perforation_mode=self.perforation[-1], grad_conv=grad_conv
             )
         )
         # make it nn.Sequential

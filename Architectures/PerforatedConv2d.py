@@ -11,11 +11,15 @@ class _InterpolateCustom(autograd.Function):
 
     @staticmethod
     def forward(ctx, f_input, params):
-        shape, perf, grad_conv = params
+        shape, perf, grad_conv, conv = params
         ctx.grad_conv = grad_conv
         ctx.perforation = perf
         ctx.orig_shape = tuple(f_input.shape[-2:])
-        return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
+        with torch.no_grad():
+            if conv:
+                return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
+            else:
+                return interpolate_keep_values_conv(f_input, (shape[-2], shape[-1]))
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -28,14 +32,14 @@ class _InterpolateCustom(autograd.Function):
                 return grad_output[:, :, :, ::2], None
             elif ctx.perforation == "both":
                 if ctx.grad_conv:
-                    #TODO nek splošen postopek za dobiti ta kernel za vsak nivo perforacije
+                    # TODO nek splošen postopek za dobiti ta kernel za vsak nivo perforacije
                     # pokaži razliko v gradientu med non-perforated, tem in samo vsako drugo vrednostjo
                     return F.conv2d(
                         grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
                                          grad_output.shape[3]),  # Gaussian approximation
                         torch.tensor(
-                            [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]])
-                        .to(grad_output.device), padding=1, stride=(2, 2)).view(
+                            [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]], device=grad_output.device)
+                        , padding=1, stride=(2, 2)).view(
                         grad_output.shape[0], grad_output.shape[1],
                         grad_output.shape[2] // 2 + (grad_output.shape[2] % 2),
                         grad_output.shape[3] // 2 + (
@@ -50,8 +54,8 @@ class InterpolatePerforate(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, out_shape, perforation, grad_conv):
-        return _InterpolateCustom.apply(x, (out_shape, perforation, grad_conv))
+    def forward(self, x, out_shape, perforation, grad_conv, kind):
+        return _InterpolateCustom.apply(x, (out_shape, perforation, grad_conv, kind))
 
 
 class PerforatedConv2d(nn.Module):
@@ -74,19 +78,17 @@ class PerforatedConv2d(nn.Module):
                  device: Any = None,
                  dtype: Any = None,
                  perforation_mode: str = None,
-                 use_custom_interp: bool = False,
-                 grad_conv: bool = True) -> None:
+                 grad_conv: bool = True,
+                 kind=True) -> None:
 
         super().__init__()
         self.grad_conv = grad_conv
-        self.use_custom_interp = use_custom_interp
         if perforation_mode is not None:
-            if not perforation_mode in ["first", "second", "both", "none"]:
+            if perforation_mode not in ["first", "second", "both", "none"]:
                 print(f"Perforation mode {perforation_mode} Not currently supported.")
                 raise NotImplementedError
             else:
-                if self.use_custom_interp:
-                    self.inter = InterpolatePerforate()
+                self.inter = InterpolatePerforate()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -99,6 +101,7 @@ class PerforatedConv2d(nn.Module):
                               padding_mode, device, dtype)
         self.weight = self.conv.weight
         self.bias = self.conv.bias
+        self.kind = kind
 
     # noinspection PyTypeChecker
     def forward(self, x, current_perforation=None):
@@ -109,9 +112,9 @@ class PerforatedConv2d(nn.Module):
         out_x = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // self.conv.stride[0]
         out_y = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // self.conv.stride[0]
         out_x_2 = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // (
-                    self.conv.stride[0] * 2)
+                self.conv.stride[0] * 2)
         out_y_2 = (x.shape[-2] - 2 * (self.conv.kernel_size[0] // 2) + 2 * self.conv.padding[0]) // (
-                    self.conv.stride[0] * 2)
+                self.conv.stride[0] * 2)
         if out_x_2 <= 1:
             if out_y_2 <= 1:
                 current_perforation = "none"
@@ -119,18 +122,30 @@ class PerforatedConv2d(nn.Module):
                 current_perforation = "second"
         elif out_y_2 <= 1:
             current_perforation = "first"
-        #if out_x_2 <= 1 or out_y_2 <= 1:
+        # if out_x_2 <= 1 or out_y_2 <= 1:
         #    current_perforation = "none"
         x = F.conv2d(x, self.conv.weight, self.conv.bias,
                      (self.conv.stride[0] * (2 if current_perforation in ["first", "both"] else 1),  # TODO optimise
                       self.conv.stride[1] * (2 if current_perforation in ["second", "both"] else 1)), self.conv.padding,
                      self.conv.dilation, self.conv.groups)
         if current_perforation != "none":
-            if self.use_custom_interp:
-                x = self.inter(x, (out_x, out_y), current_perforation, self.grad_conv)
-            else:
-                x = F.interpolate(x, (out_x, out_y), mode="bilinear")
+            x = self.inter(x, (out_x, out_y), current_perforation, self.grad_conv, self.kind)
         return x
+
+
+def interpolate_keep_values_conv(inp, desired_shape):
+    sz21, sz22 = desired_shape
+    inp2 = torch.zeros((inp.shape[0], inp.shape[1], sz21, sz22), device=inp.device)
+    inp2[:, :, ::2, ::2] = inp
+    c2 = F.conv2d(inp2.view(inp2.shape[0] * inp2.shape[1], 1, inp2.shape[2], inp2.shape[3]),
+                  torch.tensor([[[[0.25, 0.5, 0.25], [0.5, 1, 0.5], [0.25, 0.5, 0.25]]]], device=inp2.device), padding=1).view(
+        inp2.shape[0], inp2.shape[1], inp2.shape[2], inp2.shape[3])
+    #print("asda")
+    if sz22 != 2 * inp.shape[-1]:
+        c2[:, :, -1, :] = c2[:, :, -2, :]
+    if sz21 != 2 * inp.shape[-2]:
+        c2[:, :, :, -1] = c2[:, :, :, -2]
+    return c2
 
 
 def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
@@ -163,7 +178,7 @@ def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
             if dblx:
                 out_tensor = torch.roll(torch.stack((mids, input_tensor), dim=-2)
                                         .view(input_tensor.shape[0], input_tensor.shape[1], out_x,
-                                              orig_x), -1, dims=-2)
+                                              orig_y), -1, dims=-2)
                 off2 = torch.roll(out_tensor, 1, dims=-1)
                 mids2 = ((out_tensor + off2) / 2)
                 if dbly:
@@ -209,7 +224,7 @@ def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
                 return out_tensor
             else:
                 out_tensor = torch.roll(torch.stack((mids, input_tensor), dim=-2)
-                                        .view(input_tensor.shape[0], input_tensor.shape[1], orig_x * 2, orig_x), -1,
+                                        .view(input_tensor.shape[0], input_tensor.shape[1], orig_x * orig_x), -1,
                                         dims=-2)
                 if duplicate_edges:
                     out_tensor[:, :, -1, :] = out_tensor[:, :, -2, :]
@@ -236,28 +251,33 @@ def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    sz = 5
+    sz1 = 5
+    sz2 = 4
     sz21 = 10
-    sz22 = 9
-    a = torch.zeros((sz, sz))
+    sz22 = 7
+    a = torch.zeros((sz1, sz2))
     a[1::2, ::2] = 1
     a[::2, 1::2] = 1
     cv = nn.Conv2d(1, 1, 3, stride=2)
     test = cv(a[np.newaxis, np.newaxis, :, :])
     print(test.shape)
 
-    a = a * torch.arange(0, sz * sz, 1).view(sz, sz)
+    a = a * torch.arange(0, sz1 * sz2, 1).view(sz1, sz2)
     a = torch.stack((a, a))
-    fig, axes = plt.subplots(1, 3)
-    axes[0].imshow(a[0, :, :], vmin=0, vmax=sz * sz - 1)
+    fig, axes = plt.subplots(1, 4)
+    axes[0].imshow(a[0, :, :], vmin=0, vmax=sz1 * sz2 - 1)
     axes[0].set_title("Non-interpolated")
     c = interpolate_keep_values(torch.stack((a, -a)), (sz21, sz22))
     print(c.shape)
+    inp = torch.stack((a, -a))
+    c2 = interpolate_keep_values_conv(inp, (sz21, sz22))
 
-    axes[1].imshow(torch.squeeze(c)[0, 0], vmin=0, vmax=sz * sz - 1)
+    axes[1].imshow(torch.squeeze(c)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
     axes[1].set_title("\"Good\" interpolation")
+    axes[2].imshow(torch.squeeze(c2)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
+    axes[2].set_title("\"Good\" interpolation with conv")
     d = F.interpolate(torch.stack((a, -a)), (sz21, sz22), mode="bilinear", align_corners=False)
-    axes[2].imshow(torch.squeeze(d)[0, 0], vmin=0, vmax=sz * sz - 1)
-    axes[2].set_title("Normal interpolation")
+    axes[3].imshow(torch.squeeze(d)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
+    axes[3].set_title("Normal interpolation")
     plt.tight_layout()
     plt.show()
