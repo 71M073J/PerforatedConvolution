@@ -1741,3 +1741,107 @@ Epoch 6, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'bot
 Class accs: [0.58744444 0.41622222 0.41644444 0.47277778 0.46911111 0.312
  0.56266667 0.53455556 0.71222222 0.48322222 0.         0.
  0.         0.         0.        ]
+Epoch 0, network ResNet, perf mode ['triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple'], gradient filtering True
+Class accs: [0.49922222 0.51533333 0.27044444 0.22833333 0.14388889 0.30555556
+ 0.70111111 0.58388889 0.52466667 0.43588889 0.         0.
+ 0.         0.         0.        ]
+Epoch 1, network ResNet, perf mode ['triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple'], gradient filtering True
+Class accs: [0.66966667 0.57666667 0.264      0.468      0.37566667 0.139
+ 0.62922222 0.51433333 0.44477778 0.35933333 0.         0.
+ 0.         0.         0.        ]
+Epoch 2, network ResNet, perf mode ['triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple'], gradient filtering True
+Class accs: [0.59744444 0.61166667 0.485      0.39944444 0.31977778 0.28233333
+ 0.66111111 0.51088889 0.58833333 0.43833333 0.         0.
+ 0.         0.         0.        ]
+Epoch 3, network ResNet, perf mode ['triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple', 'triple'], gradient filtering True
+Class accs: [0.52777778 0.58844444 0.34322222 0.38888889 0.38477778 0.28944444
+ 0.67844444 0.675      0.55555556 0.56966667 0.         0.
+ 0.         0.         0.        ]
+Epoch 0, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.42688889 0.34466667 0.36455556 0.25533333 0.23744444 0.32188889
+ 0.61033333 0.498      0.65233333 0.342      0.         0.
+ 0.         0.         0.        ]
+Epoch 1, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.56522222 0.352      0.43211111 0.49066667 0.42922222 0.161
+ 0.36922222 0.30888889 0.70188889 0.21033333 0.         0.
+ 0.         0.         0.        ]
+Epoch 2, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.495      0.293      0.47622222 0.32077778 0.61977778 0.17422222
+ 0.336      0.50766667 0.62844444 0.35344444 0.         0.
+ 0.         0.         0.        ]
+Epoch 3, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.54355556 0.55388889 0.45833333 0.315      0.50422222 0.37944444
+ 0.36944444 0.55555556 0.60888889 0.43822222 0.         0.
+ 0.         0.         0.        ]
+Epoch 4, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.64344444 0.50177778 0.36211111 0.39188889 0.49311111 0.28766667
+ 0.46455556 0.48355556 0.72744444 0.28666667 0.         0.
+ 0.         0.         0.        ]
+Epoch 5, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.61588889 0.32933333 0.40455556 0.53377778 0.54455556 0.21177778
+ 0.56555556 0.46988889 0.76744444 0.38833333 0.         0.
+ 0.         0.         0.        ]
+Epoch 6, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.47666667 0.45922222 0.41577778 0.39455556 0.38822222 0.43477778
+ 0.67744444 0.654      0.67688889 0.57444444 0.         0.
+ 0.         0.         0.        ]
+Epoch 7, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.61122222 0.44511111 0.39966667 0.30377778 0.67533333 0.322
+ 0.57377778 0.46655556 0.63       0.36022222 0.         0.
+ 0.         0.         0.        ]
+Epoch 8, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.62433333 0.53055556 0.48022222 0.39133333 0.64822222 0.32855556
+ 0.66511111 0.41022222 0.64555556 0.584      0.         0.
+ 0.         0.         0.        ]
+Epoch 9, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.66811111 0.60422222 0.61966667 0.38566667 0.38988889 0.26077778
+ 0.69422222 0.46911111 0.69233333 0.384      0.         0.
+ 0.         0.         0.        ]
+Epoch 0, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.42688889 0.34466667 0.36455556 0.25533333 0.23744444 0.32188889
+ 0.61033333 0.498      0.65233333 0.342      0.         0.
+ 0.         0.         0.        ]
+Epoch 1, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.59311111 0.37555556 0.33788889 0.509      0.477      0.13177778
+ 0.32477778 0.39311111 0.70666667 0.28955556 0.         0.
+ 0.         0.         0.        ]
+Epoch 2, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.43433333 0.34966667 0.51444444 0.32677778 0.59322222 0.21466667
+ 0.21555556 0.48955556 0.68066667 0.39422222 0.         0.
+ 0.         0.         0.        ]
+Epoch 3, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.32055556 0.56466667 0.47855556 0.46344444 0.43933333 0.23177778
+ 0.52522222 0.54933333 0.62411111 0.47066667 0.         0.
+ 0.         0.         0.        ]
+Epoch 4, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.66855556 0.42733333 0.38377778 0.49877778 0.43244444 0.24166667
+ 0.53888889 0.49844444 0.70877778 0.29077778 0.         0.
+ 0.         0.         0.        ]
+Epoch 5, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.60466667 0.31722222 0.43211111 0.50744444 0.58277778 0.20266667
+ 0.56011111 0.43233333 0.74144444 0.45555556 0.         0.
+ 0.         0.         0.        ]
+Epoch 6, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.55544444 0.54044444 0.44722222 0.35788889 0.40011111 0.43555556
+ 0.60444444 0.69211111 0.64377778 0.56155556 0.         0.
+ 0.         0.         0.        ]
+Epoch 7, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.586      0.49488889 0.41444444 0.347      0.55855556 0.35611111
+ 0.69055556 0.37655556 0.629      0.43055556 0.         0.
+ 0.         0.         0.        ]
+Epoch 8, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.63022222 0.47233333 0.48322222 0.33411111 0.64022222 0.27244444
+ 0.72366667 0.35933333 0.62522222 0.62777778 0.         0.
+ 0.         0.         0.        ]
+Epoch 9, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.696      0.61155556 0.57466667 0.38388889 0.42855556 0.25011111
+ 0.69344444 0.47322222 0.71944444 0.31733333 0.         0.
+ 0.         0.         0.        ]
+Epoch 0, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.66422222 0.41933333 0.39411111 0.45622222 0.68011111 0.174
+ 0.56033333 0.47522222 0.631      0.47511111 0.         0.
+ 0.         0.         0.        ]
+Epoch 1, network ResNet, perf mode ['both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both', 'both'], gradient filtering True
+Class accs: [0.55511111 0.58277778 0.56288889 0.30911111 0.60688889 0.42055556
+ 0.64644444 0.44366667 0.64366667 0.43622222 0.         0.
+ 0.         0.         0.        ]

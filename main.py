@@ -17,6 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision
 import torchvision.transforms as transforms
 
+from torch.distributions import Categorical
 from contextlib import ExitStack
 from torch.profiler import profile, record_function, ProfilerActivity
 from torchinfo import summary
@@ -28,7 +29,7 @@ def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2 ** 32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
-    print("Seed worker called YET AGAIN")
+    #print("Seed worker called YET AGAIN")
 
 
 g = torch.Generator()
@@ -40,74 +41,11 @@ np.random.seed(0)
 random.seed(0)
 
 
-class ImageClassificationBase(nn.Module):
-    def training_step(self, batch):
-        images, labels = batch
-        out = self(images)  # Generate predictions
-        loss = F.cross_entropy(out, labels)  # Calculate loss
-        return loss
-
-    def validation_step(self, batch):
-        images, labels = batch
-        out = self(images)  # Generate predictions
-        loss = F.cross_entropy(out, labels)  # Calculate loss
-        acc = accuracy(out, labels)  # Calculate accuracy
-        return {'val_loss': loss.detach(), 'val_acc': acc}
-
-    def validation_epoch_end(self, outputs):
-        batch_losses = [x['val_loss'] for x in outputs]
-        epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
-        batch_accs = [x['val_acc'] for x in outputs]
-        epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
-        return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item()}
-
-    def epoch_end(self, epoch, result):
-        print("Epoch [{}], train_loss: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}".format(
-            epoch, result['train_loss'], result['val_loss'], result['val_acc']))
-
-
 def accuracy(outputs, labels):
     _, preds = torch.max(outputs, dim=1)
     return torch.tensor(torch.sum(preds == labels).item() / len(preds))
 
 
-class Cifar10CnnModel(ImageClassificationBase):
-
-    def __init__(self, perf="none", interpolate_grad=True):
-        super().__init__()
-        self.network = nn.Sequential(
-            PerforatedConv2d(3, 32, kernel_size=3, padding=1, perforation_mode=perf, interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            PerforatedConv2d(32, 64, kernel_size=3, stride=1, padding=1, perforation_mode=perf,
-                             interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # output: 64 x 16 x 16
-
-            PerforatedConv2d(64, 128, kernel_size=3, stride=1, padding=1, perforation_mode=perf,
-                             interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            PerforatedConv2d(128, 128, kernel_size=3, stride=1, padding=1, perforation_mode=perf,
-                             interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
-
-            PerforatedConv2d(128, 256, kernel_size=3, stride=1, padding=1, perforation_mode=perf,
-                             interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            PerforatedConv2d(256, 256, kernel_size=3, stride=1, padding=1, perforation_mode=perf,
-                             interpolate_grad=interpolate_grad),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # output: 256 x 4 x 4
-
-            nn.Flatten(),
-            nn.Linear(256 * 4 * 4, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, 10))
-
-    def forward(self, xb):
-        return self.network(xb)
 
 
 from PIL import Image
@@ -166,9 +104,9 @@ def compare_speed():
         l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=True).to(device)
         l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=False).to(device)
         #l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
-        #l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="second").to(device)
+        l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="trip", kind=True).to(device)
         l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="none").to(device)
-        ls = [l1, l2, l3,  l5]
+        ls = [l1, l2, l3, l4, l5]
         os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
         total_times = [0, 0, 0, 0, 0]
         times = [[], [], [], [], []]
@@ -179,8 +117,6 @@ def compare_speed():
             input_vec = torch.randn(size=(4096 // in_channels, in_channels, 64, 64), requires_grad=True).to(device)
             for j, (l, o) in enumerate(zip(ls, os)):
                 o.zero_grad()
-                if j > 0:
-                    print(l.perforation)
                 torch.cuda.current_stream().synchronize()
                 t0 = time.time()
                 out1 = l(input_vec)
@@ -196,14 +132,13 @@ def compare_speed():
             if i % 10 == 0:
                 print(i)
 
-                # TODO:
+                #TODO:
                 # convergence time
                 # backward pass time
                 # final accuracy when converged
                 # loss plot
-
                 # softmax confidence/entropy of the output probability vector
-                # try resnet as well, and other NN architectures
+                # try as well, and other NN architectures
                 # mobilenet with CINIC10 dataset
                 # also try larger image dataset - maybe fruits?
 
@@ -217,7 +152,7 @@ def compare_speed():
         plt.plot(times[0], label=f"Normal Conv, {int(1000 * (total_times[0] / len(times[0]) * 1000)) / 1000}ms avg")
         for i in range(len(ls) - 1):
             plt.plot(times[i + 1],
-                     label=f"PerfConv {ls[1 + i].perforation}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
+                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' +str(ls[i+1].kind) if ls[i+1].perforation != 'none' else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
         plt.legend()
         plt.ylabel("Time elapsed (s)")
         if backwards:
@@ -281,6 +216,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                                                            -1).detach().cpu()
     for epoch in range(n_epochs):
         l = 0
+        entropies = 0
         accs = 0
         networkCallTime = 0
         class_accs = np.zeros((2, 15))
@@ -297,11 +233,15 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                                                                  -1).detach().cpu()
                 if vary_perf is not None:
                     if vary_perf == "incremental":
-                        randn = np.random.randint(0, n_conv)
-                        perfs = (["both"] * randn) + (["none"] * (n_conv - randn))
+                        randn = np.random.randint(0, n_conv, size=2)#TODO make this actually sensible
+                        perfs = np.array(["trip"] * n_conv)
+                        perfs[np.min(randn):np.max(randn)] = np.array(["both"] * (np.max(randn) - np.min(randn)))
+                        perfs[np.max(randn):] = "none"
                     elif vary_perf == "random":
+                        rn = np.random.random(n_conv)
                         perfs = np.array(["both"] * n_conv)
-                        perfs[np.random.random(n_conv) > 0.5] = "none"
+                        perfs[rn > 0.66666] = np.array(["none"] * len(perfs[rn > 0.66666]))
+                        perfs[rn < 0.33333] = np.array(["trip"] * len(perfs[rn < 0.33333]))
                     net._set_perforation(perfs)
                 batch = batch.to(device)
                 t0 = time.time()
@@ -310,6 +250,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     networkCallTime += time.time() - t0
                 loss = loss_fn(pred, classes.to(device))
                 loss.backward()
+                entropy = Categorical(probs=F.softmax(pred.detach().cpu(), dim=1))#F.softmax(pred.detach().cpu(), dim=1)
+                entropies += entropy.entropy().mean()
                 acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
                 for clas in classes[acc]:
                     class_accs[0, clas] += 1
@@ -361,6 +303,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     batchacc = accs / bs
                     if i % 100 == 0:
                         if verbose:
+                            print("mean entropies:", entropies / i)
                             print(
                                 f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int((i / items) * 10000) / 100}%, Batch",
                                 i)
@@ -382,6 +325,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             ep_losses.append(l.item()/i)
             losses.append(np.nan)
             print("Average Epoch Train Loss:", l.item() / i)
+            print("mean entropies:", entropies / i)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
@@ -437,8 +381,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     plt.clf()
 
 if __name__ == "__main__":
-    compare_speed()
-    quit()
+    #compare_speed()
+    #quit()
     from Architectures.mobilenetv2 import MobileNetV2
     from Architectures.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_small, MobileNetV3
     from Architectures.resnet import resnet152, resnet18, ResNet
@@ -455,27 +399,27 @@ if __name__ == "__main__":
         #   dont bother much (or at all) with speedup, focus on "accuracy" performance
 
         # TODO treniranje do saturationa lossa - da dobimo hitrost konvergence pri treniranju (run on something not my laptop)
-
-        # MMobileNetV2(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        #MobileNetV2(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),  # , dropout=0.0
-        #MobileNetV2(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        # MobileNetV2(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        # TODO entropy of the output probability vector
+        # MMobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=True),
+        #MobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=True),  # , dropout=0.0
+        #MobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=False),
+        # MobileNetV2(num_classes=10, perforation_mode="both" ),
         # MobileNetV2(num_classes=10, perforation_mode="none"),
-        #mobilenet_v3_small(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        # mobilenet_v3_small(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        # mobilenet_v3_small(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        #mobilenet_v3_small(num_classes=10, perforation_mode="both",   grad_conv=True),
+        # mobilenet_v3_small(num_classes=10, perforation_mode="both",   grad_conv=False),
+        # mobilenet_v3_small(num_classes=10, perforation_mode="both" ),
         # mobilenet_v3_small(num_classes=10, perforation_mode="none"),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        # mobilenet_v3_large(num_classes=10, perforation_mode="both",   grad_conv=True),
+        # mobilenet_v3_large(num_classes=10, perforation_mode="both",   grad_conv=False),
+        # mobilenet_v3_large(num_classes=10, perforation_mode="both" ),
         # mobilenet_v3_large(num_classes=10, perforation_mode="none"),
-        resnet18(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        #resnet18(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        #resnet18(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        resnet18(num_classes=10, perforation_mode="trip", grad_conv=True),
+        #resnet18(num_classes=10, perforation_mode="both",   grad_conv=False),
+        #resnet18(num_classes=10, perforation_mode="both" ),
         #resnet18(num_classes=10, perforation_mode="none"),
-        # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=True),
-        # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=True, grad_conv=False),
-        # resnet152(num_classes=10, perforation_mode="both", use_custom_interp=False),
+        # resnet152(num_classes=10, perforation_mode="both",   grad_conv=True),
+        # resnet152(num_classes=10, perforation_mode="both",   grad_conv=False),
+        # resnet152(num_classes=10, perforation_mode="both" ),
         # resnet152(num_classes=10, perforation_mode="none"),
     ]
 
@@ -483,14 +427,14 @@ if __name__ == "__main__":
         for vary_perf in [None, "random", "incremental"]:
             # TODO make profiler spit out more data
             # TODO run convergence tests on fri machine
+            vary_perf = "random"
             t = time.time()
-            test_net(net, batch_size=128, epochs=30, do_profiling=False, summarise=False, verbose=True, make_imgs=False,
+            test_net(net, batch_size=128, epochs=10, do_profiling=False, summarise=False, verbose=False, make_imgs=False,
                      plot_loss=True, vary_perf=vary_perf,
                      run_name=type(net).__name__ +
-                              (f"-Vary_perforation-{vary_perf}-Grad_conv-{str(net.grad_conv) if net.use_custom_interp else ''}-" if vary_perf is not None else ("" if net.perforation[0] == "none" else ("" + net.perforation[0] + (
-                                  ("-Grad_conv-" + str(net.grad_conv)) if net.use_custom_interp else "")))))
+                              (f"-Vary_perforation-{vary_perf}" if vary_perf is not None else ("" if net.perforation[0] == "none" else ("" + net.perforation[0] ))))
             print(
-                f"{type(net)}, Perforation mode: {net.perforation}, Custom interpolation: {net.use_custom_interp}, {time.time() - t} seconds")
+                f"{type(net)}, Perforation mode: {net.perforation}, {time.time() - t} seconds")
 
     # test_net(resnet152(num_classes=10, perforation_mode="both"), batch_size=32)
 
