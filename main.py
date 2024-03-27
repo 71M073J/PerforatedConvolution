@@ -480,7 +480,8 @@ if __name__ == "__main__":
                                "-eval_" + eval_mode + \
                                f"-grad_{net.grad_conv}"
                     i += 1
-                    print(i)
+                    if os.path.isfile(f"./timelines/loss_timeline_{run_name}.png"):
+                        continue
                     # print(run_name)
                     t = time.time()
 
