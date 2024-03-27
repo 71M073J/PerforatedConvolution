@@ -321,8 +321,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             scheduler.step(l.item() / i)
             ep_losses.append(l.item() / i)
             losses.append(np.nan)
-            print(f"Average Epoch {i} Train Loss:", l.item() / i, file=file)
-            print(f"Average Epoch {i} Train Loss:", l.item() / i)
+            print(f"Average Epoch {epoch} Train Loss:", l.item() / i, file=file)
+            print(f"Average Epoch {epoch} Train Loss:", l.item() / i)
             print("mean entropies:", entropies / i, file=file)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
