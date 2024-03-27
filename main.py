@@ -366,7 +366,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 minacc = l2.item() / i
                 params = copy.deepcopy(net.state_dict())
             net.train()
-
+    net.load_state_dict(params)
     net.eval()
     if eval_mode is not None:
         net._set_perforation([eval_mode] * n_conv)
@@ -382,6 +382,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             class_accs3[0, clas] += 1
         for clas in classes:
             class_accs3[1, clas] += 1
+    print(f"Best test epoch:", file=file)
     print(f"Validation loss: {l3/(ii+1)}, validation class accs: {class_accs3[0]/(class_accs3[1]+1e-12)}", file=file)
     test_losses.append(np.nan)
     fig, axes = plt.subplots(1, 2, sharey=True)
@@ -459,6 +460,7 @@ if __name__ == "__main__":
                 extra += "only_1st_perf"
             for grad in [True, False]:
                 nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
+    i = 0
     with open("output.txt", "w") as f:
         for net in nets:
             for eval_mode in ["none", "both", "trip"]:
@@ -471,14 +473,17 @@ if __name__ == "__main__":
                                "perf_" + (f"{vary_perf}" if vary_perf is not None else net.perforation[0]) + \
                                "-eval_" + eval_mode + \
                                f"-grad_{net.grad_conv}"
+                    i += 1
+                    print(i)
                     # print(run_name)
                     t = time.time()
 
                     test_net(net, batch_size=128, epochs=50, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=True, vary_perf=vary_perf, file=None, eval_mode=eval_mode,
                              run_name=run_name)
-                    print(f"{run_name}\n{time.time() - t} seconds Elapsed", file=f)
-                    print(f"{run_name}\n{time.time() - t} seconds Elapsed")
+                    duration = time.time() - t
+                    print(f"{run_name}\n{duration} seconds Elapsed", file=f)
+                    print(f"{run_name}\n{duration} seconds Elapsed")
 
 
     quit()
