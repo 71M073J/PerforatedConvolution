@@ -1,27 +1,20 @@
-import copy
 import os.path
 import time
-from typing import Union
-import cv2
+import copy
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from typing_extensions import Any
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import cv2
 from torch.utils.data import Dataset, DataLoader
-import torchvision
-import torchvision.transforms as transforms
-
+from torchvision import transforms
 from torch.distributions import Categorical
 from contextlib import ExitStack
-from torch.profiler import profile, record_function, ProfilerActivity
 from torchinfo import summary
-
+from pytorch_cinic.dataset import CINIC10
 from Architectures.PerforatedConv2d import PerforatedConv2d
 
 
@@ -29,7 +22,7 @@ def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2 ** 32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
-    #print("Seed worker called YET AGAIN")
+    # print("Seed worker called YET AGAIN")
 
 
 g = torch.Generator()
@@ -46,8 +39,6 @@ def accuracy(outputs, labels):
     return torch.tensor(torch.sum(preds == labels).item() / len(preds))
 
 
-
-
 from PIL import Image
 
 
@@ -58,7 +49,7 @@ def load_image(infilename):
     return data
 
 
-class CINIC10(Dataset):
+class CINIC10_(Dataset):
 
     def __init__(self, dir="./CINIC-10", mode="train", ):
         if mode not in ["train", "test", "valid"]:
@@ -103,7 +94,7 @@ def compare_speed():
         l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
         l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=True).to(device)
         l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=False).to(device)
-        #l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
+        # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
         l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="trip", kind=True).to(device)
         l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="none").to(device)
         ls = [l1, l2, l3, l4, l5]
@@ -132,7 +123,7 @@ def compare_speed():
             if i % 10 == 0:
                 print(i)
 
-                #TODO:
+                # TODO:
                 # convergence time
                 # backward pass time
                 # final accuracy when converged
@@ -146,13 +137,13 @@ def compare_speed():
 
         print(f"Normal convLayer: average of {total_times[0] / len(times[0])} seconds")
         for i in range(len(ls) - 1):
-            print(ls[i+1].kind)
+            print(ls[i + 1].kind)
             print(
                 f"Perforated convLayer: {ls[i + 1].perforation}: average of {total_times[i + 1] / len(times[i + 1])} seconds")
         plt.plot(times[0], label=f"Normal Conv, {int(1000 * (total_times[0] / len(times[0]) * 1000)) / 1000}ms avg")
         for i in range(len(ls) - 1):
             plt.plot(times[i + 1],
-                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' +str(ls[i+1].kind) if ls[i+1].perforation != 'none' else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
+                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' + str(ls[i + 1].kind) if ls[i + 1].perforation != 'none' else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
         plt.legend()
         plt.ylabel("Time elapsed (s)")
         if backwards:
@@ -164,21 +155,26 @@ def compare_speed():
 
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
-             make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None):
+             make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
+             file=None):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     # transform = transforms.Compose(
     #    [transforms.ToTensor(),
     #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     # dataset = DataLoader(AppleDataset(mode="train"), num_workers=4, batch_size=bs, shuffle=True)
-    dataset = DataLoader(CINIC10(mode="train"), collate_fn=col,
+    tf = transforms.Compose([transforms.ToTensor()])
+    dataset = DataLoader(CINIC10(partition="train", download=True, transform=tf),# collate_fn=col,
                          num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
                          generator=g)
     dataset2 = DataLoader(
-        CINIC10(mode="test"), num_workers=4, collate_fn=col,
+        CINIC10(partition="test", download=True, transform=tf), num_workers=4,# collate_fn=col,
         batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
         generator=g, )
-
+    dataset3 = DataLoader(
+        CINIC10(partition="valid", download=True, transform=tf), num_workers=4,# collate_fn=col,
+        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+        generator=g, )
     # net = simpleNN(perf="both", interpolate_gradients=True)
     # net = Cifar10CnnModel(perf="both", interpolate_grad=True)
     loss_fn = nn.CrossEntropyLoss()
@@ -193,27 +189,19 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     items = len(dataset)
     testitems = len(dataset2)
     # TODO TRAIN TEST VALIDATE SPLIT
-
+    best_accs = np.zeros(15)
     losses = []
     ep_losses = []
     test_losses = []
     ep_test_losses = []
-    #
-    #
-    # time.sleep(123)
-    img = 0
+    net.train()
+    params = None
+    img = False
     n_conv = len(net.perforation)
-    if make_imgs:
-        if type(net) == MobileNetV2:
-            img = list(net.children())[0][0][0].weight.grad.view(
-                list(net.children())[0][0][0].weight.shape[0], -1).detach().cpu()
-
-        if type(net) == MobileNetV3:
-            img = list(net.children())[0][0][0].weight.grad.view(
-                list(net.children())[0][0][0].weight.shape[0], -1).detach().cpu()
-        elif type(net) == ResNet:
-            img = list(net.children())[0].weight.grad.view(list(net.children())[0].weight.shape[0],
-                                                           -1).detach().cpu()
+    p = 0
+    if eval_mode is not None:
+        p = net._get_perforation()
+    minacc = 10
     for epoch in range(n_epochs):
         l = 0
         entropies = 0
@@ -224,16 +212,10 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             if do_profiling:
                 prof = stack.enter_context(torch.autograd.profiler.profile(profile_memory=True, use_cuda=True))
             for i, (batch, classes) in enumerate(dataset):
-                if make_imgs and i % 100 == 0:
-                    if type(net) == MobileNetV2 or type(net) == MobileNetV3:
-                        img = list(net.children())[0][0][0].weight.grad.view(
-                            list(net.children())[0][0][0].weight.shape[0], -1).detach().cpu()
-                    elif type(net) == ResNet:
-                        img = list(net.children())[0].weight.grad.view(list(net.children())[0].weight.shape[0],
-                                                                 -1).detach().cpu()
+
                 if vary_perf is not None:
                     if vary_perf == "incremental":
-                        randn = np.random.randint(0, n_conv, size=2)#TODO make this actually sensible
+                        randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
                         perfs = np.array(["trip"] * n_conv)
                         perfs[np.min(randn):np.max(randn)] = np.array(["both"] * (np.max(randn) - np.min(randn)))
                         perfs[np.max(randn):] = "none"
@@ -243,6 +225,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                         perfs[rn > 0.66666] = np.array(["none"] * len(perfs[rn > 0.66666]))
                         perfs[rn < 0.33333] = np.array(["trip"] * len(perfs[rn < 0.33333]))
                     net._set_perforation(perfs)
+                if eval_mode is not None:
+                    net._set_perforation(p)
                 batch = batch.to(device)
                 t0 = time.time()
                 pred = net(batch)
@@ -250,7 +234,15 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     networkCallTime += time.time() - t0
                 loss = loss_fn(pred, classes.to(device))
                 loss.backward()
-                entropy = Categorical(probs=F.softmax(pred.detach().cpu(), dim=1))#F.softmax(pred.detach().cpu(), dim=1)
+                if (make_imgs and i % 100 == 99) or (make_imgs and type(img) == bool):
+                    if type(net) == MobileNetV2 or type(net) == MobileNetV3:
+                        img = list(net.children())[0][0][0].weight.grad.view(
+                            list(net.children())[0][0][0].weight.shape[0], -1).detach().cpu()
+                    elif type(net) == ResNet:
+                        img = list(net.children())[0].weight.grad.view(list(net.children())[0].weight.shape[0],
+                                                                       -1).detach().cpu()
+                entropy = Categorical(
+                    probs=F.softmax(pred.detach().cpu(), dim=1))  # F.softmax(pred.detach().cpu(), dim=1)
                 entropies += entropy.entropy().mean()
                 acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
                 for clas in classes[acc]:
@@ -265,16 +257,16 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 #    #with torch.no_grad():
                 #        plt.plot(net.relu7(torch.arange(-60, 60, 0.1).cuda()).detach().cpu())
                 #        plt.show()
-                if make_imgs:
+                if make_imgs and i % 100 != 0:
                     if type(net) == MobileNetV2 or type(net) == MobileNetV3:
                         img += list(net.children())[0][0][0].weight.grad.view(
                             list(net.children())[0][0][0].weight.shape[0], -1).detach().cpu()
                     elif type(net) == ResNet:
                         img += list(net.children())[0].weight.grad.view(list(net.children())[0].weight.shape[0],
-                                                                   -1).detach().cpu()
-                if i % 100 == 0:
+                                                                        -1).detach().cpu()
+                if i % 100 == 99:
                     if make_imgs:  # todo maybe sum/avg of gradients over 100 batches instead of just 100th batch
-
+                        img = img / 100
                         im = plt.imshow(img)
                         values = [torch.min(img), torch.max(img)]
                         colors = [im.cmap(im.norm(value)) for value in values]
@@ -291,6 +283,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                         plt.savefig(os.path.join(newpath, f"e{epoch}-b{i}.png"))
                         # plt.show()
                         plt.clf()
+                        img = False
                 if True:
                     # with torch.no_grad():
                     #    plt.plot(np.arange(-15, 15, 0.01), net.relu7(torch.arange(-15, 15, 0.01, dtype=torch.float, device=device)).detach().cpu())
@@ -303,17 +296,18 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     batchacc = accs / bs
                     if i % 100 == 0:
                         if verbose:
-                            print("mean entropies:", entropies / i)
+                            print("mean entropies:", entropies / i, file=file)
                             print(
                                 f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int((i / items) * 10000) / 100}%, Batch",
-                                i)
-                            print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12))
+                                i, file=file)
+                            print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
                             print(int((time.time() - t0) * 100) / 100, "Seconds elapsed for 1 batch forward.",
-                                  "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds")
+                                  "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds",
+                                  file=file)
 
                         if do_profiling:
                             stack.close()
-                            print(prof.key_averages().table(row_limit=10))
+                            print(prof.key_averages().table(row_limit=10), file=file)
                             with open("all_nets_profiling.txt", "a") as f:
                                 print("network", run_name, ":", file=f)
                                 print(prof.key_averages().table(row_limit=10), file=f)
@@ -322,15 +316,15 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     accs = 0
 
             scheduler.step(l.item() / i)
-            ep_losses.append(l.item()/i)
+            ep_losses.append(l.item() / i)
             losses.append(np.nan)
-            print("Average Epoch Train Loss:", l.item() / i)
-            print("mean entropies:", entropies / i)
+            print("Average Epoch Train Loss:", l.item() / i, file=file)
+            print("mean entropies:", entropies / i, file=file)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
-            if vary_perf is not None:
-                net._set_perforation(["both"] * n_conv)
+            if eval_mode is not None:
+                net._set_perforation([eval_mode] * n_conv)
             class_accs = np.zeros((2, 15))
             l2 = 0
             for i, (batch, classes) in enumerate(dataset2):
@@ -346,43 +340,77 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     class_accs[1, clas] += 1
                 if i % 50 == 0 and verbose:
                     print(
-                        f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int((i / testitems) * 10000) / 100}%")
+                        f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int((i / testitems) * 10000) / 100}%",
+                        file=file)
 
-                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12))
+                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             test_losses.append(np.nan)
             if report_class_accs:
-                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12))
-            print("Average Epoch Test Loss:", l2.item() / i)
-            with open("./out.txt", "a") as f:
+                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
+            print("Average Epoch Test Loss:", l2.item() / i, file=file)
+            if file is None:
+                with open("./out.txt", "a") as f:
+                    print(
+                        f"Epoch {epoch}, network {type(net).__name__}",
+                        file=f)
+                    print(
+                        f"Epoch {epoch}, network {type(net).__name__}")
+                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=f)
+            else:
                 print(
-                    f"Epoch {epoch}, network {type(net).__name__}, perf mode {net.perforation}, gradient filtering {net.grad_conv}",
-                    file=f)
-                print(
-                    f"Epoch {epoch}, network {type(net).__name__}, perf mode {net.perforation}, gradient filtering {net.grad_conv}")
-                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=f)
-            ep_test_losses.append(l2.item()/i)
+                    f"Epoch {epoch}, network {type(net).__name__}",
+                    file=file)
+                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
+            ep_test_losses.append(l2.item() / i)
+            if (l2.item() / i) < minacc:
+                minacc = l2.item() / i
+                params = copy.deepcopy(net.state_dict())
             net.train()
-        # print("saving best model...")
-        # torch.save(net.state_dict(), f"./model.pth")
-        # torch.save(op.state_dict(), f"./op.pth")
-    plt.scatter(range(len(losses)), losses, label="losses")
-    plt.scatter(range(len(test_losses) + (len(test_losses) // epochs)),
-             ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses")
-    plt.plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)), ep_losses, color="r", label="Avg epoch Train loss")
-    plt.plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)), ep_test_losses, color="g", label="Avg Epoch Test loss")
-    plt.xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)), np.arange(0, epochs + 1, 1))
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.legend()
+
+    net.eval()
+    if eval_mode is not None:
+        net._set_perforation([eval_mode] * n_conv)
+    class_accs3 = np.zeros((2, 15))
+    l3 = 0
+    for ii, (batch, classes) in enumerate(dataset3):
+
+        pred = net(batch.to(device))
+        loss = loss_fn(pred, classes.to(device))
+        l3 += loss.detach().cpu()
+        acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+        for clas in classes[acc]:
+            class_accs3[0, clas] += 1
+        for clas in classes:
+            class_accs3[1, clas] += 1
+    print(f"Validation loss: {l3/(ii+1)}, validation class accs: {class_accs3[0]/(class_accs3[1]+1e-12)}", file=file)
+    test_losses.append(np.nan)
+    fig, axes = plt.subplots(1, 2, sharey=True)
+    axes[0].scatter(range(len(losses)), losses, label="losses", alpha=0.1)
+    axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
+                    ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
+    axes[0].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                 ep_losses, color="r", label="Avg epoch Train loss")
+    axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                 ep_test_losses, color="g", label="Avg Epoch Test loss")
+    axes[0].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                       np.arange(0, epochs + 1, 1))
+    axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                       np.arange(0, epochs + 1, 1))
+    axes[0].set_xlabel("Epochs")
+    axes[1].set_xlabel("Epochs")
+    axes[0].set_ylabel("Loss")
+    axes[0].legend()
+    axes[1].legend()
     plt.tight_layout()
     plt.grid()
-    plt.savefig(f"loss_timeline_{run_name}.png")
-    #plt.show()
+    plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
+    # plt.show()
     plt.clf()
 
+
 if __name__ == "__main__":
-    #compare_speed()
-    #quit()
+    # compare_speed()
+    # quit()
     from Architectures.mobilenetv2 import MobileNetV2
     from Architectures.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_small, MobileNetV3
     from Architectures.resnet import resnet152, resnet18, ResNet
@@ -400,46 +428,59 @@ if __name__ == "__main__":
 
         # TODO treniranje do saturationa lossa - da dobimo hitrost konvergence pri treniranju (run on something not my laptop)
         # TODO entropy of the output probability vector
-        # MMobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=True),
-        #MobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=True),  # , dropout=0.0
-        #MobileNetV2(num_classes=10, perforation_mode="both",   grad_conv=False),
-        # MobileNetV2(num_classes=10, perforation_mode="both" ),
-        # MobileNetV2(num_classes=10, perforation_mode="none"),
-        #mobilenet_v3_small(num_classes=10, perforation_mode="both",   grad_conv=True),
-        # mobilenet_v3_small(num_classes=10, perforation_mode="both",   grad_conv=False),
-        # mobilenet_v3_small(num_classes=10, perforation_mode="both" ),
-        # mobilenet_v3_small(num_classes=10, perforation_mode="none"),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both",   grad_conv=True),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both",   grad_conv=False),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="both" ),
-        # mobilenet_v3_large(num_classes=10, perforation_mode="none"),
-        resnet18(num_classes=10, perforation_mode="trip", grad_conv=True),
-        #resnet18(num_classes=10, perforation_mode="both",   grad_conv=False),
-        #resnet18(num_classes=10, perforation_mode="both" ),
-        #resnet18(num_classes=10, perforation_mode="none"),
-        # resnet152(num_classes=10, perforation_mode="both",   grad_conv=True),
-        # resnet152(num_classes=10, perforation_mode="both",   grad_conv=False),
-        # resnet152(num_classes=10, perforation_mode="both" ),
-        # resnet152(num_classes=10, perforation_mode="none"),
+
     ]
+    for n in [MobileNetV2, mobilenet_v3_small, mobilenet_v3_large, resnet18, resnet152]:
+        for perf in ["none", "both", "trip", "start2"]:
+            extra = ""
+            if n == mobilenet_v3_small:
+                extra += "small"
+            elif n == mobilenet_v3_large:
+                extra += "large"
+            elif n == resnet18:
+                extra += "18"
+            elif n == resnet152:
+                extra += "152"
+            if perf == "start2":
+                if n == mobilenet_v3_small:
+                    perf = ["both"] + ["none"] * 51
+                    extra += "-"
+                elif n == MobileNetV2:
+                    perf = ["both"] + ["none"] * 51
+                elif n == mobilenet_v3_large:
+                    perf = ["both"] + ["none"] * 61
+                    extra += "-"
+                elif n == resnet18:
+                    perf = ["both"] + ["none"] * 24
+                    extra += "-"
+                elif n == resnet152:
+                    extra += "-"
+                    perf = ["both"] + ["none"] * 200
+                extra += "only_1st_perf"
+            for grad in [True, False]:
+                nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
+    with open("output.txt", "w") as f:
+        for net in nets:
+            for eval_mode in ["none", "both", "trip"]:
+                for vary_perf in [None, "random"]:  # , "incremental"]:
+                    # TODO make profiler spit out more data
+                    # TODO run convergence tests on fri machine
+                    # vary_perf = "random"
+                    run_name = type(net).__name__ + "-" + \
+                               (net.extra_name + "-" if net.extra_name != "" else "") + \
+                               "perf_" + (f"{vary_perf}" if vary_perf is not None else net.perforation[0]) + \
+                               "-eval_" + eval_mode + \
+                               f"-grad_{net.grad_conv}"
+                    # print(run_name)
+                    t = time.time()
 
-    for net in nets:
-        for vary_perf in [None, "random", "incremental"]:
-            # TODO make profiler spit out more data
-            # TODO run convergence tests on fri machine
-            vary_perf = "random"
-            t = time.time()
-            test_net(net, batch_size=128, epochs=10, do_profiling=False, summarise=False, verbose=False, make_imgs=False,
-                     plot_loss=True, vary_perf=vary_perf,
-                     run_name=type(net).__name__ +
-                              (f"-Vary_perforation-{vary_perf}" if vary_perf is not None else ("" if net.perforation[0] == "none" else ("" + net.perforation[0] ))))
-            print(
-                f"{type(net)}, Perforation mode: {net.perforation}, {time.time() - t} seconds")
+                    test_net(net, batch_size=128, epochs=50, do_profiling=False, summarise=False, verbose=False,
+                             make_imgs=True, plot_loss=True, vary_perf=vary_perf, file=None, eval_mode=eval_mode,
+                             run_name=run_name)
+                    print(f"{run_name}\n{time.time() - t} seconds Elapsed", file=f)
+                    print(f"{run_name}\n{time.time() - t} seconds Elapsed")
 
-    # test_net(resnet152(num_classes=10, perforation_mode="both"), batch_size=32)
 
-    # compare_speed()
-    # quit()
     quit()
     h = PerforatedConv2d(3, 5, 3, stride=2, padding=2)
     sz = 10

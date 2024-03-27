@@ -160,9 +160,10 @@ class ResNet(nn.Module):
             replace_stride_with_dilation: Optional[List[bool]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             perforation_mode="both",
-            grad_conv: bool = True
+            grad_conv: bool = True, extra_name=""
     ) -> None:
         super().__init__()
+        self.extra_name=extra_name
         self.perforation = perforation_mode
         self.grad_conv = grad_conv
         if norm_layer is None:
@@ -301,6 +302,18 @@ class ResNet(nn.Module):
                 cnt += 1
                 l[0].conv3 = perf[cnt]
                 cnt += 1
+    def _get_perforation(self, perf):
+        perfs = [self.conv1.perforation]
+        ls = [self.layer1, self.layer2, self.layer3, self.layer4]
+        for l in ls:
+            if type(l) == BasicBlock:
+                perfs.append(l[0].conv1)
+                perfs.append(l[0].conv2)
+            elif type(l) == Bottleneck:
+                perfs.append(l[0].conv1)
+                perfs.append(l[0].conv2)
+                perfs.append(l[0].conv3)
+        return  perfs
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]

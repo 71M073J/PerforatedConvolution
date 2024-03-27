@@ -83,7 +83,7 @@ class MobileNetV2(nn.Module):
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             dropout: float = 0.2,
             perforation_mode="both",
-            grad_conv: bool = True
+            grad_conv: bool = True, extra_name=""
     ) -> None:
         """
         MobileNet V2 main class
@@ -102,6 +102,8 @@ class MobileNetV2(nn.Module):
         super().__init__()
         _log_api_usage_once(self)
         self.grad_conv = grad_conv
+
+        self.extra_name=extra_name
         if block is None:
             block = InvertedResidual
 
@@ -218,6 +220,26 @@ class MobileNetV2(nn.Module):
                                 cc[0].perforation = perf[cnt]
                             #elif type(cc) ==
                             cnt += 1
+    def _get_perforation(self):
+        perfs = []
+        for layer in self.features:
+            if type(layer) == Conv2dNormActivation:
+                perfs.append(layer[0].perforation)
+            elif type(layer) == InvertedResidual:
+                for c in layer.conv:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].perforation)
+                    elif type(c) == PerforatedConv2d:
+                        perfs.append(c.perforation)
+            elif type(layer) == Sequential:
+                for c in layer:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].perforation)
+                    if type(c) == InvertedResidual:
+                        for cc in layer[0].conv:
+                            if type(cc) == Conv2dNormActivation:
+                                perfs.append(cc[0].perforation)
+        return perfs
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
 

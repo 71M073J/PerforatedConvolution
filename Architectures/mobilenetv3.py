@@ -166,7 +166,7 @@ class MobileNetV3(nn.Module):
             block: Optional[Callable[..., nn.Module]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
             dropout: float = 0.2, perforation_mode="both",
-            grad_conv: bool = True,
+            grad_conv: bool = True, extra_name="",
             **kwargs: Any,
     ) -> None:
         """
@@ -180,6 +180,8 @@ class MobileNetV3(nn.Module):
             norm_layer (Optional[Callable[..., nn.Module]]): Module specifying the normalization layer to use
             dropout (float): The droupout probability
         """
+
+        self.extra_name=extra_name
         self.size = kwargs["size"]
         super().__init__()
         self.perforation = perforation_mode
@@ -295,6 +297,30 @@ class MobileNetV3(nn.Module):
                                 cc[0].perforation = perf[cnt]
                             #elif type(cc) ==
                             cnt += 1
+
+    def _get_perforation(self):
+        perfs = []
+        for layer in self.features:
+            if type(layer) == Conv2dNormActivation:
+                perfs.append(layer[0].perforation)
+            elif type(layer) == InvertedResidual:
+                for c in layer.block:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].perforation)
+                    elif type(c) == SqueezeExcitation:
+                        perfs.append(c.fc1.perforation)
+                        perfs.append(c.fc2.perforation)
+                    elif type(c) == PerforatedConv2d:
+                        perfs.append(c.perforation)
+            elif type(layer) == Sequential:
+                for c in layer:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].perforation)
+                    if type(c) == InvertedResidual:
+                        for cc in layer[0].conv:
+                            if type(cc) == Conv2dNormActivation:
+                                perfs.append(cc[0].perforation)
+        return perfs
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.features(x)
 

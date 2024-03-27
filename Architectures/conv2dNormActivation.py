@@ -21,7 +21,7 @@ class ConvNormActivation(torch.nn.Sequential):
         conv_layer: Callable[..., torch.nn.Module] = PerforatedConv2d,
 
         perforation_mode: str = None,
-         use_custom_interp: bool = False,grad_conv: bool = True
+            grad_conv: bool = True
     ) -> None:
 
         if padding is None:
@@ -46,7 +46,6 @@ class ConvNormActivation(torch.nn.Sequential):
                 groups=groups,
                 bias=bias,
                 perforation_mode=perforation_mode,
-                use_custom_interp=use_custom_interp,
                 grad_conv=grad_conv
             )
         ]
@@ -98,7 +97,7 @@ class Conv2dNormActivation(ConvNormActivation):
         inplace: Optional[bool] = True,
         bias: Optional[bool] = None,
         perforation_mode: str = None,
-         use_custom_interp: bool = False,grad_conv: bool = True
+            grad_conv: bool = True
     ) -> None:
 
         super().__init__(
@@ -115,6 +114,5 @@ class Conv2dNormActivation(ConvNormActivation):
             bias,
             PerforatedConv2d,
             perforation_mode,
-            use_custom_interp,
             grad_conv
         )
