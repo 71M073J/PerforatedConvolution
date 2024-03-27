@@ -319,6 +319,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             ep_losses.append(l.item() / i)
             losses.append(np.nan)
             print("Average Epoch Train Loss:", l.item() / i, file=file)
+            print("Average Epoch Train Loss:", l.item() / i)
             print("mean entropies:", entropies / i, file=file)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
@@ -348,6 +349,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             if report_class_accs:
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             print("Average Epoch Test Loss:", l2.item() / i, file=file)
+            print("Average Epoch Test Loss:", l2.item() / i)
             if file is None:
                 with open("./out.txt", "a") as f:
                     print(
@@ -479,7 +481,7 @@ if __name__ == "__main__":
                     t = time.time()
 
                     test_net(net, batch_size=128, epochs=50, do_profiling=False, summarise=False, verbose=False,
-                             make_imgs=True, plot_loss=True, vary_perf=vary_perf, file=None, eval_mode=eval_mode,
+                             make_imgs=True, plot_loss=True, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
