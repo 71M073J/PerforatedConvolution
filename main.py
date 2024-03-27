@@ -480,7 +480,7 @@ if __name__ == "__main__":
                                "-eval_" + eval_mode + \
                                f"-grad_{net.grad_conv}"
                     i += 1
-                    if os.path.isfile(f"./timelines/loss_timeline_{run_name}.png"):
+                    if os.path.exists(f"./timelines/loss_timeline_{run_name}.png"):
                         print(f"Run {run_name} already complete, skipping...")
                         continue
                     # print(run_name)
