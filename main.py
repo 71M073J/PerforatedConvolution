@@ -483,6 +483,8 @@ if __name__ == "__main__":
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png"):
                         print(f"Run {run_name} already complete, skipping...")
                         continue
+                    else:
+                        print(f"Starting {run_name}...")
                     # print(run_name)
                     t = time.time()
 
