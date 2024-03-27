@@ -405,7 +405,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     axes[0].legend()
     axes[1].legend()
     plt.tight_layout()
-    plt.grid()
     plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
     # plt.show()
     plt.clf()
