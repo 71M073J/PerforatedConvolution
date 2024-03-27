@@ -321,8 +321,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             scheduler.step(l.item() / i)
             ep_losses.append(l.item() / i)
             losses.append(np.nan)
-            print("Average Epoch Train Loss:", l.item() / i, file=file)
-            print("Average Epoch Train Loss:", l.item() / i)
+            print(f"Average Epoch {i} Train Loss:", l.item() / i, file=file)
+            print(f"Average Epoch {i} Train Loss:", l.item() / i)
             print("mean entropies:", entropies / i, file=file)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
@@ -378,7 +378,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
           file=file)
     test_losses.append(np.nan)
-    fig, axes = plt.subplots(1, 2, sharey=True, figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
+    fig, axes = plt.subplots(1, 2, sharey=True,
+                             figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
     axes[0].scatter(range(len(losses)), losses, label="losses", alpha=0.1)
     axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
                     ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
@@ -386,7 +387,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                  ep_losses, color="r", label="Avg epoch Train loss")
     axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                  ep_test_losses, color="yellow", label="Avg Epoch Test loss")
-    #for ax in axes
+    # for ax in axes
     axes[0].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                        np.arange(0, epochs + 1, 1), rotation=90)
     axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
@@ -467,25 +468,28 @@ if __name__ == "__main__":
             for grad in [True, False]:
                 nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
     i = 0
-    with open("output.txt", "w") as f:
-        for net in nets:
-            for eval_mode in ["none", "both", "trip"]:
-                for vary_perf in [None, "random"]:  # , "incremental"]:
-                    # TODO make profiler spit out more data
-                    # TODO run convergence tests on fri machine
-                    # vary_perf = "random"
-                    run_name = type(net).__name__ + "-" + \
-                               (net.extra_name + "-" if net.extra_name != "" else "") + \
-                               "perf_" + (f"{vary_perf}" if vary_perf is not None else net.perforation[0]) + \
-                               "-eval_" + eval_mode + \
-                               f"-grad_{net.grad_conv}"
-                    i += 1
-                    if os.path.exists(f"./timelines/loss_timeline_{run_name}.png"):
-                        print(f"Run {run_name} already complete, skipping...")
-                        continue
-                    else:
-                        print(f"Starting {run_name}...")
-                    # print(run_name)
+    if not os.path.exists("./results"):
+        os.mkdir("./results")
+    for net in nets:
+        for eval_mode in ["none", "both", "trip"]:
+            for vary_perf in [None, "random"]:  # , "incremental"]:
+                # TODO make profiler spit out more data
+                # TODO run convergence tests on fri machine
+                # vary_perf = "random"
+                run_name = type(net).__name__ + "-" + \
+                           (net.extra_name + "-" if net.extra_name != "" else "") + \
+                           "perf_" + (f"{vary_perf}" if vary_perf is not None else net.perforation[0]) + \
+                           "-eval_" + eval_mode + \
+                           f"-grad_{net.grad_conv}"
+                i += 1
+                if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
+                        os.path.exists(f"./results/results_{run_name}.png"):
+                    print(f"Run {run_name} already complete, skipping...")
+                    continue
+                else:
+                    print(f"Starting {run_name}...")
+                # print(run_name)
+                with open(f"./results/results_{run_name}.png", "w") as f:
                     t = time.time()
 
                     test_net(net, batch_size=bs, epochs=50, do_profiling=False, summarise=False, verbose=False,
