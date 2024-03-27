@@ -32,6 +32,7 @@ import random
 
 np.random.seed(0)
 random.seed(0)
+tf = transforms.Compose([transforms.ToTensor()])
 
 
 def accuracy(outputs, labels):
@@ -156,25 +157,27 @@ def compare_speed():
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None):
+             file=None, dataset=None, dataset2=None, dataset3=None):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     # transform = transforms.Compose(
     #    [transforms.ToTensor(),
     #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     # dataset = DataLoader(AppleDataset(mode="train"), num_workers=4, batch_size=bs, shuffle=True)
-    tf = transforms.Compose([transforms.ToTensor()])
-    dataset = DataLoader(CINIC10(partition="train", download=True, transform=tf),# collate_fn=col,
-                         num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-                         generator=g)
-    dataset2 = DataLoader(
-        CINIC10(partition="test", download=True, transform=tf), num_workers=4,# collate_fn=col,
-        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-        generator=g, )
-    dataset3 = DataLoader(
-        CINIC10(partition="valid", download=True, transform=tf), num_workers=4,# collate_fn=col,
-        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-        generator=g, )
+    if dataset is None:
+        dataset = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
+                             num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+                             generator=g)
+    if dataset2 is None:
+        dataset2 = DataLoader(
+            CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+            generator=g, )
+    if dataset3 is None:
+        dataset3 = DataLoader(
+            CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+            generator=g, )
     # net = simpleNN(perf="both", interpolate_gradients=True)
     # net = Cifar10CnnModel(perf="both", interpolate_grad=True)
     loss_fn = nn.CrossEntropyLoss()
@@ -350,19 +353,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             print("Average Epoch Test Loss:", l2.item() / i, file=file)
             print("Average Epoch Test Loss:", l2.item() / i)
-            if file is None:
-                with open("./out.txt", "a") as f:
-                    print(
-                        f"Epoch {epoch}, network {type(net).__name__}",
-                        file=f)
-                    print(
-                        f"Epoch {epoch}, network {type(net).__name__}")
-                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=f)
-            else:
-                print(
-                    f"Epoch {epoch}, network {type(net).__name__}",
-                    file=file)
-                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             ep_test_losses.append(l2.item() / i)
             if (l2.item() / i) < minacc:
                 minacc = l2.item() / i
@@ -385,25 +375,29 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         for clas in classes:
             class_accs3[1, clas] += 1
     print(f"Best test epoch:", file=file)
-    print(f"Validation loss: {l3/(ii+1)}, validation class accs: {class_accs3[0]/(class_accs3[1]+1e-12)}", file=file)
+    print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
+          file=file)
     test_losses.append(np.nan)
-    fig, axes = plt.subplots(1, 2, sharey=True)
+    fig, axes = plt.subplots(1, 2, sharey=True, figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
     axes[0].scatter(range(len(losses)), losses, label="losses", alpha=0.1)
     axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
                     ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
     axes[0].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                  ep_losses, color="r", label="Avg epoch Train loss")
     axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                 ep_test_losses, color="g", label="Avg Epoch Test loss")
+                 ep_test_losses, color="yellow", label="Avg Epoch Test loss")
+    #for ax in axes
     axes[0].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                       np.arange(0, epochs + 1, 1))
+                       np.arange(0, epochs + 1, 1), rotation=90)
     axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                       np.arange(0, epochs + 1, 1))
+                       np.arange(0, epochs + 1, 1), rotation=90)
     axes[0].set_xlabel("Epochs")
     axes[1].set_xlabel("Epochs")
     axes[0].set_ylabel("Loss")
     axes[0].legend()
     axes[1].legend()
+    axes[0].grid()
+    axes[1].grid()
     plt.tight_layout()
     plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
     # plt.show()
@@ -418,7 +412,18 @@ if __name__ == "__main__":
     from Architectures.resnet import resnet152, resnet18, ResNet
 
     # from Architectures.test_resnet import resnet152
-
+    bs = 128
+    dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
+                          num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+                          generator=g)
+    dataset2 = DataLoader(
+        CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
+        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+        generator=g, )
+    dataset3 = DataLoader(
+        CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
+        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+        generator=g, )
     nets = [
         # TODO check the article for interpolation strategies
         #  todo different ways of interpolation/perforation (from the article) measuere the
@@ -432,7 +437,7 @@ if __name__ == "__main__":
         # TODO entropy of the output probability vector
 
     ]
-    for n in [MobileNetV2, mobilenet_v3_small, mobilenet_v3_large, resnet18, resnet152]:
+    for n in [resnet18, MobileNetV2, mobilenet_v3_small, mobilenet_v3_large, resnet152]:
         for perf in ["none", "both", "trip", "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
@@ -479,13 +484,12 @@ if __name__ == "__main__":
                     # print(run_name)
                     t = time.time()
 
-                    test_net(net, batch_size=128, epochs=50, do_profiling=False, summarise=False, verbose=False,
-                             make_imgs=True, plot_loss=True, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
-                             run_name=run_name)
+                    test_net(net, batch_size=bs, epochs=50, do_profiling=False, summarise=False, verbose=False,
+                             make_imgs=False, plot_loss=True, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
+                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, )
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")
-
 
     quit()
     h = PerforatedConv2d(3, 5, 3, stride=2, padding=2)

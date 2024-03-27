@@ -302,7 +302,7 @@ class ResNet(nn.Module):
                 cnt += 1
                 l[0].conv3 = perf[cnt]
                 cnt += 1
-    def _get_perforation(self, perf):
+    def _get_perforation(self):
         perfs = [self.conv1.perforation]
         ls = [self.layer1, self.layer2, self.layer3, self.layer4]
         for l in ls:
@@ -313,7 +313,7 @@ class ResNet(nn.Module):
                 perfs.append(l[0].conv1)
                 perfs.append(l[0].conv2)
                 perfs.append(l[0].conv3)
-        return  perfs
+        return perfs
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
