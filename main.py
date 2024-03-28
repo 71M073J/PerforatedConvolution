@@ -252,7 +252,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                         img = list(net.children())[0].weight.grad.view(list(net.children())[0].weight.shape[0],
                                                                        -1).detach().cpu()
                 entropy = Categorical(
-                    probs=F.softmax(pred.detach().cpu(), dim=1))  # F.softmax(pred.detach().cpu(), dim=1)
+                    probs=F.softmax(pred.detach().cpu(), dim=1) + 1e-12)  # F.softmax(pred.detach().cpu(), dim=1)
                 entropies += entropy.entropy().mean()
                 acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
                 for clas in classes[acc]:
