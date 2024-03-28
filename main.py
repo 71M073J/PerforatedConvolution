@@ -160,7 +160,7 @@ def compare_speed():
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None, dataset=None, dataset2=None, dataset3=None):
+             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     # transform = transforms.Compose(
@@ -188,7 +188,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         summary(net, input_size=(bs, 3, 32, 32))
 
     net.to(device)
-    op = optim.Adam(net.parameters(), lr=0.001)
+    if op is None:
+        op = optim.Adam(net.parameters(), lr=0.001)
+
     scheduler = ReduceLROnPlateau(op, 'min')
     # op = optim.SGD(net.parameters(), lr=0.001)
     n_epochs = epochs
@@ -365,6 +367,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 minacc = l2.item() / i
                 params = copy.deepcopy(net.state_dict())
             net.train()
+            if lr_scheduler is not None:
+                lr_scheduler.step()
     net.load_state_dict(params)
     net.eval()
     if eval_mode is not None:

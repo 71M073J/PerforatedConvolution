@@ -8,10 +8,13 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 import numpy as np
 from main import test_net
+
 nu = 0
 g = torch.Generator()
+
+
 def seed_worker(worker_id):
-    #worker_seed = torch.initial_seed() % 2 ** 32
+    # worker_seed = torch.initial_seed() % 2 ** 32
 
     global nu
     nu += 1
@@ -20,6 +23,7 @@ def seed_worker(worker_id):
     g.manual_seed(nu)
     torch.manual_seed(nu)
     # print("Seed worker called YET AGAIN")
+
 
 if __name__ == "__main__":
     np.random.seed(0)
@@ -39,7 +43,10 @@ if __name__ == "__main__":
         batch_size=bs, shuffle=True,
         generator=g, )
     net = torchvision.models.resnet18()
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, nesterov=True, weight_decay=1e-4)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
     with open("./resnet_long_test_out.txt", "w") as f:
         test_net(net, batch_size=bs, epochs=500, do_profiling=False, summarise=False, verbose=False,
-             make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
-             run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, )
+                 make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
+                 run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+                 lr_scheduler=lr_scheduler)
