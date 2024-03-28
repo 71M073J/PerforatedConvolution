@@ -203,7 +203,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     net.train()
     params = None
     img = False
-    n_conv = len(net.perforation)
+    n_conv = 0
+    if hasattr(net, 'perforation'):
+        n_conv = len(net.perforation)
     p = 0
     if eval_mode is not None:
         p = net._get_perforation()
