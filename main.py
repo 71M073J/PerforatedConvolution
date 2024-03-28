@@ -191,7 +191,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if op is None:
         op = optim.Adam(net.parameters(), lr=0.001)
 
-    scheduler = ReduceLROnPlateau(op, 'min')
+    #scheduler = ReduceLROnPlateau(op, 'min')
     # op = optim.SGD(net.parameters(), lr=0.001)
     n_epochs = epochs
     items = len(dataset)
@@ -202,6 +202,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     ep_losses = []
     test_losses = []
     ep_test_losses = []
+    test_accs = []
     net.train()
     params = None
     img = False
@@ -214,6 +215,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     minacc = 10
     for epoch in range(n_epochs):
         l = 0
+        train_accs = []
         entropies = 0
         accs = 0
         networkCallTime = 0
@@ -240,6 +242,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 batch = batch.to(device)
                 t0 = time.time()
                 pred = net(batch)
+                acc = torch.sum(F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)/bs
+                train_accs.append(acc)
                 if i > 5:
                     networkCallTime += time.time() - t0
                 loss = loss_fn(pred, classes.to(device))
@@ -306,13 +310,13 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     batchacc = accs / bs
                     if i % 100 == 0:
                         if verbose:
-                            print("mean entropies:", entropies / i, file=file)
+                            print("mean entropies:", entropies / (i+1), file=file)
                             print(
-                                f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int((i / items) * 10000) / 100}%, Batch",
-                                i, file=file)
+                                f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int(((i+1) / items) * 10000) / 100}%, Batch",
+                                (i+1), file=file)
                             print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
                             print(int((time.time() - t0) * 100) / 100, "Seconds elapsed for 1 batch forward.",
-                                  "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds",
+                                  "Average net call:", int((networkCallTime / (i+1)) * 100000) / 100, "Milliseconds",
                                   file=file)
 
                         if do_profiling:
@@ -325,13 +329,15 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     # l = 0
                     accs = 0
 
-            scheduler.step(l.item() / i)
-            ep_losses.append(l.item() / i)
+            #scheduler.step(l.item() / i)
+            ep_losses.append(l.item() / (i+1))
             losses.append(np.nan)
             if file is not None:
-                print(f"Average Epoch {epoch} Train Loss:", l.item() / i, file=file)
-            print(f"Average Epoch {epoch} Train Loss:", l.item() / i)
-            print("mean entropies:", entropies / i, file=file)
+                print(f"Average Epoch {epoch} Train Loss:", l.item() / (i+1), file=file)
+                print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}", file=file)
+            print(f"Average Epoch {epoch} Train Loss:", l.item() / (i+1))
+            print("mean entropies:", entropies / (i+1), file=file, end=" - ")
+            print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}")
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
@@ -346,13 +352,14 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 l2 += loss.detach().cpu()
                 test_losses.append(loss.detach().cpu())
                 acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+                test_accs.append(torch.sum(acc)/bs)
                 for clas in classes[acc]:
                     class_accs[0, clas] += 1
                 for clas in classes:
                     class_accs[1, clas] += 1
                 if i % 50 == 0 and verbose:
                     print(
-                        f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int((i / testitems) * 10000) / 100}%",
+                        f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int(((i + 1) / testitems) * 10000) / 100}%",
                         file=file)
 
                     print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
@@ -360,11 +367,13 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             if report_class_accs:
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             if file is not None:
-                print("Average Epoch Test Loss:", l2.item() / i, file=file)
-            print("Average Epoch Test Loss:", l2.item() / i)
-            ep_test_losses.append(l2.item() / i)
-            if (l2.item() / i) < minacc:
-                minacc = l2.item() / i
+                print("Average Epoch Test Loss:", l2.item() / (i+1), file=file)
+                print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}", file=file)
+            print("Average Epoch Test Loss:", l2.item() / (i+1))
+            print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}")
+            ep_test_losses.append(l2.item() / (i+1))
+            if (l2.item() / (i+1)) < minacc:
+                minacc = l2.item() / (i+1)
                 params = copy.deepcopy(net.state_dict())
             net.train()
             if lr_scheduler is not None:
@@ -375,12 +384,14 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         net._set_perforation([eval_mode] * n_conv)
     class_accs3 = np.zeros((2, 15))
     l3 = 0
+    valid_accs = []
     for ii, (batch, classes) in enumerate(dataset3):
 
         pred = net(batch.to(device))
         loss = loss_fn(pred, classes.to(device))
         l3 += loss.detach().cpu()
         acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+        valid_accs.append(torch.sum(acc)/bs)
         for clas in classes[acc]:
             class_accs3[0, clas] += 1
         for clas in classes:
@@ -388,6 +399,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     print(f"Best test epoch:", file=file)
     print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
           file=file)
+
+    print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
+    print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
     test_losses.append(np.nan)
     fig, axes = plt.subplots(1, 2, sharey=True,
                              figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
