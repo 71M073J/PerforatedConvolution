@@ -357,7 +357,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             test_losses.append(np.nan)
             if report_class_accs:
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
-            print("Average Epoch Test Loss:", l2.item() / i, file=file)
+            if file is not None:
+                print("Average Epoch Test Loss:", l2.item() / i, file=file)
             print("Average Epoch Test Loss:", l2.item() / i)
             ep_test_losses.append(l2.item() / i)
             if (l2.item() / i) < minacc:
