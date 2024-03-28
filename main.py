@@ -17,17 +17,20 @@ from torchinfo import summary
 from pytorch_cinic.dataset import CINIC10
 from Architectures.PerforatedConv2d import PerforatedConv2d
 
-
+nu = 0
+g = torch.Generator()
 def seed_worker(worker_id):
-    worker_seed = torch.initial_seed() % 2 ** 32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
+    #worker_seed = torch.initial_seed() % 2 ** 32
+
+    global nu
+    nu += 1
+    np.random.seed(nu)
+    random.seed(nu)
+    g.manual_seed(nu)
+    torch.manual_seed(nu)
     # print("Seed worker called YET AGAIN")
 
 
-g = torch.Generator()
-g.manual_seed(0)
-torch.manual_seed(0)
 import random
 
 np.random.seed(0)
@@ -395,6 +398,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     axes[0].set_xlabel("Epochs")
     axes[1].set_xlabel("Epochs")
     axes[0].set_ylabel("Loss")
+    axes[0].set_ylim(-0.15, 6)
+    axes[1].set_ylim(-0.15, 6)
     axes[0].legend()
     axes[1].legend()
     axes[0].grid()
@@ -411,19 +416,21 @@ if __name__ == "__main__":
     from Architectures.mobilenetv2 import MobileNetV2
     from Architectures.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_small, MobileNetV3
     from Architectures.resnet import resnet152, resnet18, ResNet
+    np.random.seed(0)
+    random.seed(0)
+    tf = transforms.Compose([transforms.ToTensor()])
 
-    # from Architectures.test_resnet import resnet152
     bs = 128
     dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
-                          num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+                          num_workers=4, batch_size=bs, shuffle=True,
                           generator=g)
     dataset2 = DataLoader(
         CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+        batch_size=bs, shuffle=True,
         generator=g, )
     dataset3 = DataLoader(
         CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-        batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
+        batch_size=bs, shuffle=True,
         generator=g, )
     nets = [
         # TODO check the article for interpolation strategies
@@ -472,7 +479,7 @@ if __name__ == "__main__":
         os.mkdir("./results")
     for net in nets:
         for eval_mode in ["none", "both", "trip"]:
-            for vary_perf in [None, "random"]:  # , "incremental"]:
+            for vary_perf in [None]:#, "random"]:  # , "incremental"]:
                 # TODO make profiler spit out more data
                 # TODO run convergence tests on fri machine
                 # vary_perf = "random"
@@ -489,7 +496,7 @@ if __name__ == "__main__":
                 else:
                     print(f"Starting {run_name}...")
                 # print(run_name)
-                with open(f"./results/results_{run_name}.png", "w") as f:
+                with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
 
                     test_net(net, batch_size=bs, epochs=50, do_profiling=False, summarise=False, verbose=False,
