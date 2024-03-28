@@ -202,7 +202,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     ep_losses = []
     test_losses = []
     ep_test_losses = []
-    test_accs = []
     net.train()
     params = None
     img = False
@@ -216,6 +215,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     for epoch in range(n_epochs):
         l = 0
         train_accs = []
+        test_accs = []
         entropies = 0
         accs = 0
         networkCallTime = 0
@@ -337,7 +337,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}", file=file)
             print(f"Average Epoch {epoch} Train Loss:", l.item() / (i+1))
             print("mean entropies:", entropies / (i+1), file=file, end=" - ")
-            print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}")
+            print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}")
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
@@ -368,7 +368,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             if file is not None:
                 print("Average Epoch Test Loss:", l2.item() / (i+1), file=file)
-                print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}", file=file)
+                print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}, len of accs{len(test_accs)}, divisor: {i+1}", file=file)
             print("Average Epoch Test Loss:", l2.item() / (i+1))
             print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}")
             ep_test_losses.append(l2.item() / (i+1))
@@ -502,7 +502,7 @@ if __name__ == "__main__":
     for net in nets:
         for eval_mode in ["none", "both", "trip"]:
             for vary_perf in [None]:#, "random"]:  # , "incremental"]:
-                # TODO make profiler spit out more data
+                # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
                 # TODO run convergence tests on fri machine
                 # vary_perf = "random"
                 run_name = type(net).__name__ + "-" + \
