@@ -337,7 +337,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}", file=file)
             print(f"Average Epoch {epoch} Train Loss:", l.item() / (i+1))
             print("mean entropies:", entropies / (i+1), file=file, end=" - ")
-            print(f"Epoch mean acc: {sum(test_accs)/(i + 1)}, divisor: {i+1}, len {len(test_accs)}")
+            print(f"Epoch mean acc: {sum(train_accs)/(i + 1)}, divisor: {i+1}, len {len(train_accs)}")
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
