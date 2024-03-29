@@ -316,7 +316,7 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
         ep_test_losses.append(l2.item() / (i + 1))
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None):
+             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     # transform = transforms.Compose(
@@ -374,37 +374,40 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 
         test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
-        if (ep_test_losses[-1]) < minacc:
-            minacc = ep_test_losses[-1]
-            params.pop()
-            params.append(copy.deepcopy(net.state_dict()))
+
+        if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
+            if (ep_test_losses[-1]) < minacc:
+                minacc = ep_test_losses[-1]
+                params.pop()
+                params.append(copy.deepcopy(net.state_dict()))
         net.train()
         if lr_scheduler is not None:
             lr_scheduler.step()
-    net.load_state_dict(params[0])
-    net.eval()
-    if eval_mode is not None:
-        net._set_perforation([eval_mode] * n_conv)
-    class_accs3 = np.zeros((2, 15))
-    l3 = 0
-    valid_accs = []
-    for ii, (batch, classes) in enumerate(dataset3):
+    if validate:
+        net.load_state_dict(params[0])
+        net.eval()
+        if eval_mode is not None:
+            net._set_perforation([eval_mode] * n_conv)
+        class_accs3 = np.zeros((2, 15))
+        l3 = 0
+        valid_accs = []
+        for ii, (batch, classes) in enumerate(dataset3):
 
-        pred = net(batch.to(device))
-        loss = loss_fn(pred, classes.to(device))
-        l3 += loss.detach().cpu()
-        acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
-        valid_accs.append(torch.sum(acc) / bs)
-        for clas in classes[acc]:
-            class_accs3[0, clas] += 1
-        for clas in classes:
-            class_accs3[1, clas] += 1
-    print(f"Best test epoch:", file=file)
-    print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
-          file=file)
+            pred = net(batch.to(device))
+            loss = loss_fn(pred, classes.to(device))
+            l3 += loss.detach().cpu()
+            acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+            valid_accs.append(torch.sum(acc) / bs)
+            for clas in classes[acc]:
+                class_accs3[0, clas] += 1
+            for clas in classes:
+                class_accs3[1, clas] += 1
+        print(f"Best test epoch:", file=file)
+        print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
+              file=file)
 
-    print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
-    print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
+        print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
+        print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
     test_losses.append(np.nan)
     fig, axes = plt.subplots(1, 2, sharey=True,
                              figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
@@ -514,6 +517,7 @@ if __name__ == "__main__":
                            f"-grad_{net.grad_conv}"
                 i += 1
                 plot_loss = False
+                validate=False
                 run_name += "_short"
                 if plot_loss:
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
@@ -528,7 +532,7 @@ if __name__ == "__main__":
 
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
-                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, )
+                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, validate=validate)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")
