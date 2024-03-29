@@ -264,8 +264,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
             newpath = f"./imgs/{run_name}"
             if not os.path.exists(newpath):
                 os.makedirs(newpath)
-            plt.show()
-            plt.savefig(os.path.join(newpath, f"e{epoch}-b{i}.png"))
+            plt.savefig(os.path.join(newpath, f"grad_hist_e{epoch}.png"))
             # plt.show()
             plt.clf()
         # scheduler.step(l.item() / i)
