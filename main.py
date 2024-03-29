@@ -412,7 +412,19 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     test_losses.append(np.nan)
     fig, axes = plt.subplots(1, 2 if do_test else 1, sharey=True,
                              figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
-    axes[0].scatter(range(len(losses)), losses, label="losses", alpha=0.1)
+    ax1 = axes[0] if do_test else axes
+    ax1.scatter(range(len(losses)), losses, label="losses", alpha=0.1)
+    ax1.plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                 ep_losses, color="r", label="Avg epoch Train loss")
+
+    # for ax in axes
+    ax1.set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                       np.arange(0, epochs + 1, 1), rotation=90)
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Loss")
+    ax1.set_ylim(-0.15, 6)
+    ax1.legend()
+    ax1.grid()
     if do_test:
         axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
                     ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
@@ -424,17 +436,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         axes[1].set_ylim(-0.15, 6)
         axes[1].legend()
         axes[1].grid()
-    axes[0].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                 ep_losses, color="r", label="Avg epoch Train loss")
-
-    # for ax in axes
-    axes[0].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                       np.arange(0, epochs + 1, 1), rotation=90)
-    axes[0].set_xlabel("Epochs")
-    axes[0].set_ylabel("Loss")
-    axes[0].set_ylim(-0.15, 6)
-    axes[0].legend()
-    axes[0].grid()
     plt.tight_layout()
     plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
     # plt.show()
