@@ -517,6 +517,7 @@ if __name__ == "__main__":
                 i += 1
                 plot_loss = False
                 validate=False
+                test_every_n = 99
                 run_name += "_short"
                 if plot_loss:
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
@@ -531,7 +532,7 @@ if __name__ == "__main__":
 
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
-                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, validate=validate)
+                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, validate=validate, test_every_n=test_every_n)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")
