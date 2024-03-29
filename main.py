@@ -254,28 +254,28 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                         return
                 # l = 0
                 accs = 0
-        if make_imgs:  # todo histogram of gradients
-            y, x = torch.histogram(torch.stack(weights))
-            x = ((x + x.roll(-1))*0.5)[:-1]
-            plt.bar(x, y, label="Gradient magnitude distribution", width=(x[-1]-x[0])/99)
-            plt.xlabel("Bin limits")
-            plt.yscale("log")
-            plt.tight_layout()
-            newpath = f"./imgs/{run_name}"
-            if not os.path.exists(newpath):
-                os.makedirs(newpath)
-            plt.savefig(os.path.join(newpath, f"grad_hist_e{epoch}.png"))
-            # plt.show()
-            plt.clf()
-        # scheduler.step(l.item() / i)
-        ep_losses.append(l.item() / (i + 1))
-        losses.append(np.nan)
-        if file is not None:
-            print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1), file=file)
-            print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}", file=file)
-        print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
-        print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
-        print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
+    if make_imgs:  # todo histogram of gradients
+        y, x = torch.histogram(torch.stack(weights))
+        x = ((x + x.roll(-1))*0.5)[:-1]
+        plt.bar(x, y, label="Gradient magnitude distribution", width=(x[-1]-x[0])/99)
+        plt.xlabel("Bin limits")
+        plt.yscale("log")
+        plt.tight_layout()
+        newpath = f"./imgs/{run_name}"
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        plt.savefig(os.path.join(newpath, f"grad_hist_e{epoch}.png"))
+        # plt.show()
+        plt.clf()
+    # scheduler.step(l.item() / i)
+    ep_losses.append(l.item() / (i + 1))
+    losses.append(np.nan)
+    if file is not None:
+        print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1), file=file)
+        print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}", file=file)
+    print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
+    print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
+    print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
@@ -315,9 +315,11 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
         ep_test_losses.append(l2.item() / (i + 1))
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True):
+             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True, do_test=True):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
+    if do_test and test_every_n > epochs:
+        do_test = False
     # transform = transforms.Compose(
     #    [transforms.ToTensor(),
     #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -408,29 +410,31 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
         print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
     test_losses.append(np.nan)
-    fig, axes = plt.subplots(1, 2, sharey=True,
+    fig, axes = plt.subplots(1, 2 if do_test else 1, sharey=True,
                              figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
     axes[0].scatter(range(len(losses)), losses, label="losses", alpha=0.1)
-    axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
+    if do_test:
+        axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
                     ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
+        axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                     ep_test_losses, color="yellow", label="Avg Epoch Test loss")
+        axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                           np.arange(0, epochs + 1, 1), rotation=90)
+        axes[1].set_xlabel("Epochs")
+        axes[1].set_ylim(-0.15, 6)
+        axes[1].legend()
+        axes[1].grid()
     axes[0].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                  ep_losses, color="r", label="Avg epoch Train loss")
-    axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                 ep_test_losses, color="yellow", label="Avg Epoch Test loss")
+
     # for ax in axes
     axes[0].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                        np.arange(0, epochs + 1, 1), rotation=90)
-    axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                       np.arange(0, epochs + 1, 1), rotation=90)
     axes[0].set_xlabel("Epochs")
-    axes[1].set_xlabel("Epochs")
     axes[0].set_ylabel("Loss")
     axes[0].set_ylim(-0.15, 6)
-    axes[1].set_ylim(-0.15, 6)
     axes[0].legend()
-    axes[1].legend()
     axes[0].grid()
-    axes[1].grid()
     plt.tight_layout()
     plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
     # plt.show()
@@ -530,7 +534,7 @@ if __name__ == "__main__":
                 with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
 
-                    test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
+                    test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, validate=validate, test_every_n=test_every_n)
                     duration = time.time() - t
