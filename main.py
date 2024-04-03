@@ -20,27 +20,6 @@ from Architectures.PerforatedConv2d import PerforatedConv2d
 from Architectures.mobilenetv2 import MobileNetV2
 from Architectures.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_small, MobileNetV3
 from Architectures.resnet import resnet152, resnet18, ResNet
-nu = 0
-g = torch.Generator()
-
-
-def seed_worker(worker_id):
-    # worker_seed = torch.initial_seed() % 2 ** 32
-
-    global nu
-    nu += 1
-    np.random.seed(nu)
-    random.seed(nu)
-    g.manual_seed(nu)
-    torch.manual_seed(nu)
-    # print("Seed worker called YET AGAIN")
-
-
-import random
-
-np.random.seed(0)
-random.seed(0)
-tf = transforms.Compose([transforms.ToTensor()])
 
 
 def accuracy(outputs, labels):
@@ -256,8 +235,8 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                 accs = 0
     if make_imgs:  # todo histogram of gradients
         y, x = torch.histogram(torch.stack(weights))
-        x = ((x + x.roll(-1))*0.5)[:-1]
-        plt.bar(x, y, label="Gradient magnitude distribution", width=(x[-1]-x[0])/99)
+        x = ((x + x.roll(-1)) * 0.5)[:-1]
+        plt.bar(x, y, label="Gradient magnitude distribution", width=(x[-1] - x[0]) / 99)
         plt.xlabel("Bin limits")
         plt.yscale("log")
         plt.tight_layout()
@@ -276,6 +255,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
     print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
     print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
     print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
+
 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
@@ -313,9 +293,12 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
         print("Average Epoch Test Loss:", l2.item() / (i + 1))
         print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
         ep_test_losses.append(l2.item() / (i + 1))
+
+
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True, do_test=True):
+             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
+             do_test=True, dataset_init_fun=None, rng_gen: torch.Generator = None):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     if do_test and test_every_n > epochs:
@@ -326,18 +309,18 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     # dataset = DataLoader(AppleDataset(mode="train"), num_workers=4, batch_size=bs, shuffle=True)
     if dataset is None:
         dataset = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
-                             num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-                             generator=g)
+                             num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
+                             generator=rng_gen)
     if dataset2 is None:
         dataset2 = DataLoader(
             CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-            batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-            generator=g, )
+            batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
+            generator=rng_gen, )
     if dataset3 is None:
         dataset3 = DataLoader(
             CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-            batch_size=bs, shuffle=True, worker_init_fn=seed_worker,
-            generator=g, )
+            batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
+            generator=rng_gen, )
     # net = simpleNN(perf="both", interpolate_gradients=True)
     # net = Cifar10CnnModel(perf="both", interpolate_grad=True)
     loss_fn = nn.CrossEntropyLoss()
@@ -374,7 +357,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
 
         test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
-         report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
+             report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
 
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             if (ep_test_losses[-1]) < minacc:
@@ -416,11 +399,11 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         ax1 = axes[0] if do_test else axes
         ax1.scatter(range(len(losses)), losses, label="losses", alpha=0.1)
         ax1.plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                     ep_losses, color="r", label="Avg epoch Train loss")
+                 ep_losses, color="r", label="Avg epoch Train loss")
 
         # for ax in axes
         ax1.set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                           np.arange(0, epochs + 1, 1), rotation=90)
+                       np.arange(0, epochs + 1, 1), rotation=90)
         ax1.set_xlabel("Epochs")
         ax1.set_ylabel("Loss")
         ax1.set_ylim(-0.15, 6)
@@ -428,9 +411,10 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         ax1.grid()
         if do_test:
             axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
-                        ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
-            axes[1].plot(np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                         ep_test_losses, color="yellow", label="Avg Epoch Test loss")
+                            ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
+            axes[1].plot(
+                np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                ep_test_losses, color="yellow", label="Avg Epoch Test loss")
             axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                                np.arange(0, epochs + 1, 1), rotation=90)
             axes[1].set_xlabel("Epochs")
@@ -446,10 +430,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 if __name__ == "__main__":
     # compare_speed()
     # quit()
+    nu = 0
+    g = torch.Generator()
 
-
-    np.random.seed(0)
-    random.seed(0)
     tf = transforms.Compose([transforms.ToTensor()])
 
     bs = 128
@@ -522,7 +505,7 @@ if __name__ == "__main__":
                            f"-grad_{net.grad_conv}"
                 i += 1
                 plot_loss = False
-                validate=False
+                validate = False
                 test_every_n = 99
                 run_name += "_short"
                 if plot_loss:
@@ -538,7 +521,8 @@ if __name__ == "__main__":
 
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
-                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, validate=validate, test_every_n=test_every_n)
+                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
+                             validate=validate, test_every_n=test_every_n)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")

@@ -28,9 +28,9 @@ def seed_worker(worker_id):
 if __name__ == "__main__":
     np.random.seed(0)
     random.seed(0)
-    tf = transforms.Compose([transforms.ToTensor()])
+    tf = transforms.Compose([transforms.ToTensor(), ])
 
-    bs = 128
+    bs = 64
     dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
                           num_workers=4, batch_size=bs, shuffle=True,
                           generator=g)
@@ -43,10 +43,11 @@ if __name__ == "__main__":
         batch_size=bs, shuffle=True,
         generator=g, )
     net = torchvision.models.resnet18()
-    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, nesterov=True, weight_decay=1e-4)
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, nesterov=True, weight_decay=0.0001)
+    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=300)
     with open("./resnet_long_test_out.txt", "w") as f:
-        test_net(net, batch_size=bs, epochs=500, do_profiling=False, summarise=False, verbose=False,
+        test_net(net, batch_size=bs, epochs=300, do_profiling=False, summarise=False, verbose=False,
                  make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
                  run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                  lr_scheduler=lr_scheduler)
