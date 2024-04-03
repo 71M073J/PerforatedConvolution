@@ -12,12 +12,12 @@ from main import test_net
 if __name__ == "__main__":
     # np.random.seed(0)
     # random.seed(0)
-    augment = True
+    augment = False
     tf = [transforms.ToTensor(), ]
     if augment:
         tf.extend([transforms.RandomResizedCrop(size=32), transforms.RandomHorizontalFlip()])
     tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
-                                                      [0.24205776, 0.23828046, 0.25874835]))
+                                   [0.24205776, 0.23828046, 0.25874835]))
     tf = transforms.Compose(tf)
     g = None
     bs = 64
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         batch_size=bs, shuffle=True,
         generator=g, )
     net = torchvision.models.resnet18()
-    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, nesterov=True, weight_decay=0.0001)
+    op = torch.optim.RMSprop(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0001)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=300)
     with open("./resnet_long_test_out.txt", "w") as f:

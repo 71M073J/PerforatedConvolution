@@ -355,18 +355,18 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
-
-        test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
-             report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
-
+        if do_test:
+            test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
+                 report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
+        if lr_scheduler is not None:
+            lr_scheduler.step()
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             if (ep_test_losses[-1]) < minacc:
                 minacc = ep_test_losses[-1]
                 params.pop()
                 params.append(copy.deepcopy(net.state_dict()))
         net.train()
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+
     if validate:
         net.load_state_dict(params[0])
         net.eval()
