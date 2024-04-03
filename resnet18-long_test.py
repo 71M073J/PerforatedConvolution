@@ -15,9 +15,9 @@ if __name__ == "__main__":
     augment = True
     tf = [transforms.ToTensor(), ]
     if augment:
-        tf.extend([transforms.RandomResizedCrop(size=32), transforms.RandomHorizontalFlip])
+        tf.extend([transforms.RandomResizedCrop(size=32), transforms.RandomHorizontalFlip()])
     tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
-                                   [0.24205776, 0.23828046, 0.25874835]))
+                                                      [0.24205776, 0.23828046, 0.25874835]))
     tf = transforms.Compose(tf)
     g = None
     bs = 64
