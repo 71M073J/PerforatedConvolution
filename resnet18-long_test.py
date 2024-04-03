@@ -9,27 +9,17 @@ from torchvision.transforms import transforms
 import numpy as np
 from main import test_net
 
-nu = 0
-g = torch.Generator()
-
-
-def seed_worker(worker_id):
-    # worker_seed = torch.initial_seed() % 2 ** 32
-
-    global nu
-    nu += 1
-    np.random.seed(nu)
-    random.seed(nu)
-    g.manual_seed(nu)
-    torch.manual_seed(nu)
-    # print("Seed worker called YET AGAIN")
-
-
 if __name__ == "__main__":
-    np.random.seed(0)
-    random.seed(0)
-    tf = transforms.Compose([transforms.ToTensor(), ])
-
+    # np.random.seed(0)
+    # random.seed(0)
+    augment = False
+    tf = [transforms.ToTensor(), ]
+    if augment:
+        tf.extend([transforms.RandomResizedCrop(size=32), transforms.RandomHorizontalFlip])
+    tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
+                                   [0.24205776, 0.23828046, 0.25874835]))
+    tf = transforms.Compose(tf)
+    g = None
     bs = 64
     dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
                           num_workers=4, batch_size=bs, shuffle=True,
