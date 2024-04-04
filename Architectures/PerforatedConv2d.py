@@ -32,33 +32,33 @@ class _InterpolateCustom(autograd.Function):
                 if ctx.grad_conv:
                     # TODO nek splošen postopek za dobiti ta kernel za vsak nivo perforacije
                     # pokaži razliko v gradientu med non-perforated, tem in samo vsako drugo vrednostjo
-                    if ctx.skip_every[0] == ctx.skip_every[1] == 2:
-                        return F.conv2d(
-                            grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
-                                             grad_output.shape[3]),  # Gaussian approximation
-                            torch.tensor(
-                                [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]], device=grad_output.device)
-                            , padding=1, stride=ctx.skip_every).view(
-                            grad_output.shape[0], grad_output.shape[1],
-                            grad_output.shape[2] // 2 + (grad_output.shape[2] % 2),
-                            grad_output.shape[3] // 2 + (
-                                    grad_output.shape[3] % 2)), None
+                    #if ctx.skip_every[0] == ctx.skip_every[1] == 2:
+                    return F.conv2d(
+                        grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
+                                         grad_output.shape[3]),  # Gaussian approximation
+                        torch.tensor(
+                            [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]], device=grad_output.device)
+                        , padding=1, stride=ctx.skip_every).view(
+                        grad_output.shape[0], grad_output.shape[1],
+                        grad_output.shape[2] // 2 + (grad_output.shape[2] % 2),
+                        grad_output.shape[3] // 2 + (
+                                grad_output.shape[3] % 2)), None
 
 
                 return grad_output[:, :, ::ctx.skip_every[0], ::ctx.skip_every[1]], None
             elif ctx.perforation == "trip":
                 if ctx.grad_conv:
                     #if ctx.skip_every[0] == ctx.skip_every[1] == 3:
-                        return F.conv2d(grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2], grad_output.shape[3]),
-                                        torch.tensor([[[[0.1809, 0.2287, 0.3333, 0.2287, 0.1809],
-                                                        [0.2287, 0.3617, 0.6666, 0.3617, 0.2287],
-                                                        [0.3333, 0.6666, 1.0000, 0.6666, 0.3333],
-                                                        [0.2287, 0.3617, 0.6666, 0.3617, 0.2287],
-                                                        [0.1809, 0.2287, 0.3333, 0.2287, 0.1809]]]], device=grad_output.device),
-                                        padding=2, stride=ctx.skip_every).view(
-                            grad_output.shape[0], grad_output.shape[1],
-                            -(grad_output.shape[2] // -3),
-                            -(grad_output.shape[3] // -3)), None
+                    return F.conv2d(grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2], grad_output.shape[3]),
+                                    torch.tensor([[[[0.1809, 0.2287, 0.3333, 0.2287, 0.1809],
+                                                    [0.2287, 0.3617, 0.6666, 0.3617, 0.2287],
+                                                    [0.3333, 0.6666, 1.0000, 0.6666, 0.3333],
+                                                    [0.2287, 0.3617, 0.6666, 0.3617, 0.2287],
+                                                    [0.1809, 0.2287, 0.3333, 0.2287, 0.1809]]]], device=grad_output.device),
+                                    padding=2, stride=ctx.skip_every).view(
+                        grad_output.shape[0], grad_output.shape[1],
+                        -(grad_output.shape[2] // -3),
+                        -(grad_output.shape[3] // -3)), None
 
                 return grad_output[:, :, ::ctx.skip_every[0], ::ctx.skip_every[1]], None
             else:

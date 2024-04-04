@@ -422,7 +422,7 @@ if __name__ == "__main__":
     data = "cifar"
     dataset1, dataset2, dataset3 = None, None, None
     g = None
-    bs = 64
+    bs = 128
     if augment:
         tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
                                             transforms.RandomResizedCrop(size=32)]),
@@ -531,7 +531,7 @@ if __name__ == "__main__":
                 # print(run_name)
                 with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
-                    op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001, )
+                    op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
