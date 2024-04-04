@@ -518,8 +518,8 @@ if __name__ == "__main__":
                            f"-grad_{net.grad_conv}"
                 i += 1
                 plot_loss = False
-                validate = False
-                test_every_n = 99
+                validate = True
+                test_every_n = 1
                 run_name += "_short"
                 if plot_loss:
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
