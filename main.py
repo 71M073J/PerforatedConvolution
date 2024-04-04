@@ -541,11 +541,13 @@ if __name__ == "__main__":
                 with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
                     print(run_name)
-                    op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
+                    #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
+                    op = torch.optim.SGD(net.parameters(), lr=0.1, weight_decay=0.0001, )
+                    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=25)
                     test_net(net, batch_size=bs, epochs=25, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
-                             validate=validate, test_every_n=test_every_n, op=op)
+                             validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")
