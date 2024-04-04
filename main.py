@@ -474,7 +474,7 @@ if __name__ == "__main__":
 
     ]
     for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
-        for perf in ["none", "both", "trip"]:#, "start2"]:
+        for perf in ["both", "none", "trip"]:#, "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
