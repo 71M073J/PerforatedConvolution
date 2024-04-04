@@ -260,39 +260,40 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
     test_accs = []
-    if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
-        net.eval()
-        if eval_mode is not None:
-            net._set_perforation([eval_mode] * n_conv)
-        class_accs = np.zeros((2, 15))
-        l2 = 0
-        for i, (batch, classes) in enumerate(dataset2):
+    with torch.no_grad():
+        if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
+            net.eval()
+            if eval_mode is not None:
+                net._set_perforation([eval_mode] * n_conv)
+            class_accs = np.zeros((2, 15))
+            l2 = 0
+            for i, (batch, classes) in enumerate(dataset2):
 
-            pred = net(batch.to(device))
-            loss = loss_fn(pred, classes.to(device))
-            l2 += loss.detach().cpu()
-            test_losses.append(loss.detach().cpu())
-            acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
-            test_accs.append(torch.sum(acc) / bs)
-            for clas in classes[acc]:
-                class_accs[0, clas] += 1
-            for clas in classes:
-                class_accs[1, clas] += 1
-            if i % 50 == 0 and verbose:
-                print(
-                    f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int(((i + 1) / testitems) * 10000) / 100}%",
-                    file=file)
+                pred = net(batch.to(device))
+                loss = loss_fn(pred, classes.to(device))
+                l2 += loss.detach().cpu()
+                test_losses.append(loss.detach().cpu())
+                acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+                test_accs.append(torch.sum(acc) / bs)
+                for clas in classes[acc]:
+                    class_accs[0, clas] += 1
+                for clas in classes:
+                    class_accs[1, clas] += 1
+                if i % 50 == 0 and verbose:
+                    print(
+                        f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int(((i + 1) / testitems) * 10000) / 100}%",
+                        file=file)
 
+                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
+            test_losses.append(np.nan)
+            if report_class_accs:
                 print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
-        test_losses.append(np.nan)
-        if report_class_accs:
-            print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
-        if file is not None:
-            print("Average Epoch Test Loss:", l2.item() / (i + 1), file=file)
-            print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}", file=file)
-        print("Average Epoch Test Loss:", l2.item() / (i + 1))
-        print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
-        ep_test_losses.append(l2.item() / (i + 1))
+            if file is not None:
+                print("Average Epoch Test Loss:", l2.item() / (i + 1), file=file)
+                print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}", file=file)
+            print("Average Epoch Test Loss:", l2.item() / (i + 1))
+            print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
+            ep_test_losses.append(l2.item() / (i + 1))
 
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
@@ -303,24 +304,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     bs = batch_size
     if do_test and test_every_n > epochs:
         do_test = False
-    # transform = transforms.Compose(
-    #    [transforms.ToTensor(),
-    #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    # dataset = DataLoader(AppleDataset(mode="train"), num_workers=4, batch_size=bs, shuffle=True)
-    if dataset is None:
-        dataset = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
-                             num_workers=4, batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
-                             generator=rng_gen)
-    if dataset2 is None:
-        dataset2 = DataLoader(
-            CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-            batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
-            generator=rng_gen, )
-    if dataset3 is None:
-        dataset3 = DataLoader(
-            CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-            batch_size=bs, shuffle=True, worker_init_fn=dataset_init_fun,
-            generator=rng_gen, )
+
     # net = simpleNN(perf="both", interpolate_gradients=True)
     # net = Cifar10CnnModel(perf="both", interpolate_grad=True)
     loss_fn = nn.CrossEntropyLoss()
@@ -329,7 +313,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 
     net.to(device)
     if op is None:
-        op = optim.Adam(net.parameters(), lr=0.001)
+        op = optim.Adam(net.parameters(), lr=0.001, weight_decay=0.01)
 
     # scheduler = ReduceLROnPlateau(op, 'min')
     # op = optim.SGD(net.parameters(), lr=0.001)
@@ -337,7 +321,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     items = len(dataset)
     testitems = len(dataset2)
     # TODO TRAIN TEST VALIDATE SPLIT
-    best_accs = np.zeros(15)
     losses = []
     ep_losses = []
     test_losses = []
@@ -355,7 +338,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
-        if do_test:
+        if do_test or plot_loss:
             test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
                  report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
         if lr_scheduler is not None:
@@ -430,23 +413,49 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 if __name__ == "__main__":
     # compare_speed()
     # quit()
-    nu = 0
-    g = torch.Generator()
 
-    tf = transforms.Compose([transforms.ToTensor()])
+    augment = False
+    tf = [transforms.ToTensor(), ]
+    tf_test = [transforms.ToTensor(), ]
+    data = "cifar"
+    dataset1, dataset2, dataset3 = None, None, None
+    g = None
+    bs = 64
+    if augment:
+        tf.extend([transforms.RandomCrop(size=32, padding=4), transforms.RandomHorizontalFlip()])
+    if data == "cinic":
+        tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
+                                       [0.24205776, 0.23828046, 0.25874835]))
+        tf_test.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
+                                            [0.24205776, 0.23828046, 0.25874835]))
+        tf = transforms.Compose(tf)
+        tf_test = transforms.Compose(tf_test)
+        dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
+                              num_workers=4, batch_size=bs, shuffle=True,
+                              generator=g)
+        dataset2 = DataLoader(
+            CINIC10(partition="valid", download=True, transform=tf_test), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=True,
+            generator=g, )
+        dataset3 = DataLoader(
+            CINIC10(partition="test", download=True, transform=tf_test), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=True,
+            generator=g, )
+    elif data == "cifar":
 
-    bs = 128
-    dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
-                          num_workers=4, batch_size=bs, shuffle=True,
-                          generator=g)
-    dataset2 = DataLoader(
-        CINIC10(partition="test", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-        batch_size=bs, shuffle=True,
-        generator=g, )
-    dataset3 = DataLoader(
-        CINIC10(partition="valid", download=True, transform=tf), num_workers=4,  # collate_fn=col,
-        batch_size=bs, shuffle=True,
-        generator=g, )
+        tf.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+        tf_test.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+        tf = transforms.Compose(tf)
+        tf_test = transforms.Compose(tf_test)
+        dataset1 = torch.utils.data.DataLoader(
+            torchvision.datasets.CIFAR10(
+                root='./data', train=True, download=True, transform=tf), batch_size=128, shuffle=True, num_workers=4)
+
+        dataset2 = torch.utils.data.DataLoader(
+            torchvision.datasets.CIFAR10(
+                root='./data', train=False, download=True, transform=tf_test), batch_size=100, shuffle=False,
+            num_workers=4)
+
     nets = [
         # TODO check the article for interpolation strategies
         #  todo different ways of interpolation/perforation (from the article) measuere the
