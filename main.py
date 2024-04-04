@@ -474,7 +474,7 @@ if __name__ == "__main__":
 
     ]
     for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
-        for perf in ["none", "both", "trip"]:#, "start2"]:
+        for perf in ["trip", "both", "none"]:#, "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
@@ -505,8 +505,9 @@ if __name__ == "__main__":
     i = 0
     if not os.path.exists("./results"):
         os.mkdir("./results")
+    #nets = [resnet18(num_classes=10, perforation_mode="both", grad_conv=True)]
     for net in nets:
-        for eval_mode in ["trip", "both", "none"]:
+        for eval_mode in ["none", "both", "trip"]:
             for vary_perf in [None]:  # , "random"]:  # , "incremental"]:
                 # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
                 # TODO run convergence tests on fri machine
@@ -529,7 +530,7 @@ if __name__ == "__main__":
                     else:
                         print(f"Starting {run_name}...")
                 # print(run_name)
-                make_imgs=True
+                make_imgs=False
                 if make_imgs:
                     if os.path.exists(f"./imgs/{run_name}/grad_hist_e19.png") and \
                             os.path.exists(f"./results/results_{run_name}.txt"):
@@ -541,7 +542,7 @@ if __name__ == "__main__":
                     t = time.time()
                     print(run_name)
                     op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
-                    test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
+                    test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
                              validate=validate, test_every_n=test_every_n, op=op)

@@ -37,7 +37,9 @@ class _InterpolateCustom(autograd.Function):
                         grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
                                          grad_output.shape[3]),  # Gaussian approximation
                         torch.tensor(
-                            [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]], device=grad_output.device)
+                            [[[[0.0625, 0.125, 0.0625],
+                               [0.1250, 0.250, 0.1250],
+                               [0.0625, 0.125, 0.0625]]]], device=grad_output.device)
                         , padding=1, stride=ctx.skip_every).view(
                         grad_output.shape[0], grad_output.shape[1],
                         grad_output.shape[2] // 2 + (grad_output.shape[2] % 2),
@@ -71,8 +73,6 @@ class InterpolateFromPerforate(nn.Module):
         super().__init__()
 
     def forward(self, x, out_shape, perforation, grad_conv, kind, skip_every):
-        if perforation == "trip":
-            skip_every = (3,3)
         return _InterpolateCustom.apply(x, (out_shape, perforation, grad_conv, kind, skip_every))
 
 
@@ -238,9 +238,12 @@ class PerforatedConv2d(nn.Module):
     def forward(self, x, current_perforation=None):
 
         # self.perforation = current_perforation
+
         if current_perforation is None:
             current_perforation = self.perforation
+
         if current_perforation == "both":
+            self.skip_every = (2,2)
             out_x = int((x.shape[-2] - ((self.conv.kernel_size[0]-1) * self.conv.dilation[0]) + 2 * self.conv.padding[0] -1) // self.conv.stride[0] + 1)
             out_y = int((x.shape[-1] - ((self.conv.kernel_size[1]-1) * self.conv.dilation[1]) + 2 * self.conv.padding[1] -1) // self.conv.stride[1] + 1)
             out_x_2 = int((x.shape[-2] - ((self.conv.kernel_size[0]-1) * self.conv.dilation[0]) + 2 * self.conv.padding[0] -1) // (self.conv.stride[0] * self.skip_every[0]) + 1)
@@ -248,10 +251,13 @@ class PerforatedConv2d(nn.Module):
             if out_x_2 <= 1:
                 if out_y_2 <= 1:
                     current_perforation = "none"
+                    self.skip_every = (1,1)
                 else:
                     current_perforation = "second"
+                    self.skip_every = (1,2)
             elif out_y_2 <= 1:
                 current_perforation = "first"
+                self.skip_every = (2,1)
         elif current_perforation == "trip":
             self.skip_every = (3,3)
             out_x = int((x.shape[-2] - ((self.conv.kernel_size[0]-1) * self.conv.dilation[0]) + 2 * self.conv.padding[0] -1) // self.conv.stride[0] + 1)
@@ -261,10 +267,13 @@ class PerforatedConv2d(nn.Module):
             if out_x_2 <= 1:
                 if out_y_2 <= 1:
                     current_perforation = "none"
+                    self.skip_every = (1,1)
                 else:
                     current_perforation = "second"
+                    self.skip_every = (1,self.skip_every[1])
             elif out_y_2 <= 1:
                 current_perforation = "first"
+                self.skip_every = (self.skip_every[0], 1)
         # if out_x_2 <= 1 or out_y_2 <= 1:
         #    current_perforation = "none"
         x = F.conv2d(x, self.conv.weight, self.conv.bias,
@@ -284,7 +293,9 @@ def interpolate_keep_values_conv(inp, desired_shape, skip_every=(2,2)):
         inp2[:, :, ::2, ::2] = inp
         del inp
         inp2 = F.conv2d(inp2.view(inp2.shape[0] * inp2.shape[1], 1, inp2.shape[2], inp2.shape[3]),
-                      torch.tensor([[[[0.25, 0.5, 0.25], [0.5, 1, 0.5], [0.25, 0.5, 0.25]]]], device=inp2.device), padding=1).view(
+                      torch.tensor([[[[0.25, 0.50, 0.25],
+                                      [0.50, 1.00, 0.50],
+                                      [0.25, 0.50, 0.25]]]], device=inp2.device), padding=1).view(
             inp2.shape[0], inp2.shape[1], inp2.shape[2], inp2.shape[3])
     elif skip_every == (3,3):
         inp2 = torch.zeros((inp.shape[0], inp.shape[1], inp.shape[-2]*3, inp.shape[-1]*3), device=inp.device)
