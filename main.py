@@ -474,8 +474,8 @@ if __name__ == "__main__":
         # TODO entropy of the output probability vector
 
     ]
-    for n in [resnet18, MobileNetV2, mobilenet_v3_small, mobilenet_v3_large, resnet152]:
-        for perf in ["none", "both", "trip", "start2"]:
+    for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
+        for perf in ["none", "both", "trip"]:#, "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
@@ -501,7 +501,7 @@ if __name__ == "__main__":
                     extra += "-"
                     perf = ["both"] + ["none"] * 200
                 extra += "only_1st_perf"
-            for grad in [True, False]:
+            for grad in [True]:#, False]:
                 nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
     i = 0
     if not os.path.exists("./results"):
