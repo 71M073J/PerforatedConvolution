@@ -12,7 +12,7 @@ from main import test_net
 if __name__ == "__main__":
     # np.random.seed(0)
     # random.seed(0)
-    augment = False
+    augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]
     data = "cifar"

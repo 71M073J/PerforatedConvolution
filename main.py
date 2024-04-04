@@ -417,7 +417,7 @@ if __name__ == "__main__":
     # compare_speed()
     # quit()
 
-    augment = False
+    augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]
     data = "cifar"
