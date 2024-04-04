@@ -523,17 +523,26 @@ if __name__ == "__main__":
                 run_name += "_short"
                 if plot_loss:
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
-                            os.path.exists(f"./results/results_{run_name}.png"):
+                            os.path.exists(f"./results/results_{run_name}.txt"):
                         print(f"Run {run_name} already complete, skipping...")
                         continue
                     else:
                         print(f"Starting {run_name}...")
                 # print(run_name)
+                make_imgs=True
+                if make_imgs:
+                    if os.path.exists(f"./imgs/{run_name}/grad_hist_e19.png") and \
+                            os.path.exists(f"./results/results_{run_name}.txt"):
+                        print(f"Run {run_name} already complete, skipping...")
+                        continue
+                    else:
+                        print(f"Starting {run_name}...")
                 with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
+                    print(run_name)
                     op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
-                             make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
+                             make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
                              validate=validate, test_every_n=test_every_n, op=op)
                     duration = time.time() - t
