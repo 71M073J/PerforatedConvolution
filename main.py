@@ -474,7 +474,7 @@ if __name__ == "__main__":
 
     ]
     for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
-        for perf in ["both", "none", "trip"]:#, "start2"]:
+        for perf in ["none", "both", "trip"]:#, "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     if not os.path.exists("./results"):
         os.mkdir("./results")
     for net in nets:
-        for eval_mode in ["none", "both", "trip"]:
+        for eval_mode in ["trip", "both", "none"]:
             for vary_perf in [None]:  # , "random"]:  # , "incremental"]:
                 # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
                 # TODO run convergence tests on fri machine
@@ -520,7 +520,7 @@ if __name__ == "__main__":
                 plot_loss = False
                 validate = True
                 test_every_n = 1
-                run_name += "_short"
+                #run_name += "_short"
                 if plot_loss:
                     if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
                             os.path.exists(f"./results/results_{run_name}.txt"):
