@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=300)
     with open("./resnet_long_test_out.txt", "w") as f:
-        test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
+        test_net(net, batch_size=bs, epochs=300 , do_profiling=False, summarise=False, verbose=False,
                  make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
                  run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                  lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
