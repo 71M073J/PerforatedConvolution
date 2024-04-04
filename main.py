@@ -299,7 +299,7 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
              file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
-             do_test=True, dataset_init_fun=None, rng_gen: torch.Generator = None):
+             do_test=True, dataset_init_fun=None, rng_gen: torch.Generator = None, save_net=False):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     if do_test and test_every_n > epochs:
@@ -310,7 +310,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     loss_fn = nn.CrossEntropyLoss()
     if summarise:
         summary(net, input_size=(bs, 3, 32, 32))
-
+    if dataset3 is None:
+        dataset3 = dataset2
     net.to(device)
     if op is None:
         op = optim.Adam(net.parameters(), lr=0.001, weight_decay=0.01)
@@ -350,14 +351,14 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 params.append(copy.deepcopy(net.state_dict()))
         net.train()
 
-    if validate:
-        net.load_state_dict(params[0])
-        net.eval()
-        if eval_mode is not None:
-            net._set_perforation([eval_mode] * n_conv)
-        class_accs3 = np.zeros((2, 15))
-        l3 = 0
-        valid_accs = []
+    net.load_state_dict(params[0])
+    net.eval()
+    if eval_mode is not None:
+        net._set_perforation([eval_mode] * n_conv)
+    class_accs3 = np.zeros((2, 15))
+    l3 = 0
+    valid_accs = []
+    with torch.no_grad():
         for ii, (batch, classes) in enumerate(dataset3):
 
             pred = net(batch.to(device))
@@ -369,12 +370,14 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 class_accs3[0, clas] += 1
             for clas in classes:
                 class_accs3[1, clas] += 1
-        print(f"Best test epoch:", file=file)
-        print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
-              file=file)
+    print(f"Best test epoch:", file=file)
+    print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
+          file=file)
 
-        print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
-        print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
+    print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
+    print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
+    if save_net:
+        torch.save(params, f"{run_name}_model.pth")
     if plot_loss:
         test_losses.append(np.nan)
         fig, axes = plt.subplots(1, 2 if do_test else 1, sharey=True,
@@ -422,7 +425,9 @@ if __name__ == "__main__":
     g = None
     bs = 64
     if augment:
-        tf.extend([transforms.RandomCrop(size=32, padding=4), transforms.RandomHorizontalFlip()])
+        tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
+                                            transforms.RandomResizedCrop(size=32)]),
+                   transforms.RandomHorizontalFlip()])
     if data == "cinic":
         tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
                                        [0.24205776, 0.23828046, 0.25874835]))

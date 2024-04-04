@@ -20,7 +20,9 @@ if __name__ == "__main__":
     g = None
     bs = 64
     if augment:
-        tf.extend([transforms.RandomCrop(size=32, padding=4), transforms.RandomHorizontalFlip()])
+        tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
+                                            transforms.RandomResizedCrop(size=32)]),
+                   transforms.RandomHorizontalFlip()])
     if data == "cinic":
         tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
                                        [0.24205776, 0.23828046, 0.25874835]))
@@ -57,9 +59,11 @@ if __name__ == "__main__":
     net = torchvision.models.resnet18()
     op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0001)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=300)
+    #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
+    epochs = 300
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
     with open("./resnet_long_test_out.txt", "w") as f:
-        test_net(net, batch_size=bs, epochs=300 , do_profiling=False, summarise=False, verbose=False,
+        test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
                  make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
                  run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                  lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
