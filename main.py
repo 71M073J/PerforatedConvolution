@@ -313,8 +313,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if dataset3 is None:
         dataset3 = dataset2
     net.to(device)
-    if op is None:
-        op = optim.Adam(net.parameters(), lr=0.001, weight_decay=0.01)
+
 
     # scheduler = ReduceLROnPlateau(op, 'min')
     # op = optim.SGD(net.parameters(), lr=0.001)
@@ -532,11 +531,11 @@ if __name__ == "__main__":
                 # print(run_name)
                 with open(f"./results/results_{run_name}.txt", "w") as f:
                     t = time.time()
-
+                    op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.01, )
                     test_net(net, batch_size=bs, epochs=20, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=True, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
-                             validate=validate, test_every_n=test_every_n)
+                             validate=validate, test_every_n=test_every_n, op=op)
                     duration = time.time() - t
                     print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                     print(f"{run_name}\n{duration} seconds Elapsed")
