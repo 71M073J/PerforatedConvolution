@@ -29,7 +29,7 @@ class SqueezeExcitation(torch.nn.Module):
         input_channels: int,
         squeeze_channels: int,
         activation: Callable[..., torch.nn.Module] = torch.nn.ReLU,
-        scale_activation: Callable[..., torch.nn.Module] = torch.nn.Sigmoid, perforation_mode= ("both", "both"),
+        scale_activation: Callable[..., torch.nn.Module] = torch.nn.Sigmoid, perforation_mode: tuple = None,
                  grad_conv: bool = True,
     ) -> None:
         super().__init__()
@@ -65,7 +65,7 @@ class InvertedResidualConfig:
             activation: str,
             stride: int,
             dilation: int,
-            width_mult: float, perforation_mode,
+            width_mult: float, perforation_mode: list = None,
             grad_conv: bool = True
     ):
         self.input_channels = self.adjust_channels(input_channels, width_mult)
@@ -165,8 +165,8 @@ class MobileNetV3(nn.Module):
             num_classes: int = 1000,
             block: Optional[Callable[..., nn.Module]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
-            dropout: float = 0.2, perforation_mode="both",
-            grad_conv: bool = True, extra_name="",
+            dropout: float = 0.2, perforation_mode: list = None,
+            grad_conv: bool = True, extra_name="", in_size=(1, 3, 32, 32),
             **kwargs: Any,
     ) -> None:
         """
@@ -205,7 +205,7 @@ class MobileNetV3(nn.Module):
         layers: List[nn.Module] = []
 
         self.perforation = perforation_mode
-        if type(self.perforation) == str:
+        if type(self.perforation) == tuple:
             self.perforation = [self.perforation] * (sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2)
         if (sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2) != len(self.perforation):
             raise ValueError(f"The perforation list length should equal the number of conv layers, {(sum([len(x.perforation_mode) for x in inverted_residual_setting]) + 2)}")
@@ -264,62 +264,75 @@ class MobileNetV3(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
+
+        #init the net for perf sizes (unneeded, but if you want to know the net parameters before first batch it is necessary)
+        self.eval()
+        self(torch.zeros(in_size))
+        self.train()
     def _set_perforation(self, perf):
         self.perforation = perf
 
         cnt = 0
         for layer in self.features:
             if type(layer) == Conv2dNormActivation:
-                layer[0].perforation = perf[cnt]
+                layer[0].perf_stride = perf[cnt]
+                layer[0].recompute = True
                 cnt += 1
             elif type(layer) == InvertedResidual:
                 for c in layer.block:
                     if type(c) == Conv2dNormActivation:
-                        c[0].perforation = perf[cnt]
+                        c[0].perf_stride = perf[cnt]
+                        c[0].recompute = True
                         cnt += 1
                     elif type(c) == SqueezeExcitation:
-                        c.fc1.perforation = perf[cnt]
+                        c.fc1.perf_stride = perf[cnt]
+                        c.fc1.recompute = True
                         cnt += 1
-                        c.fc2.perforation = perf[cnt]
+                        c.fc2.perf_stride = perf[cnt]
+                        c.fc2.recompute = True
                         cnt += 1
 
                     elif type(c) == PerforatedConv2d:
-                        c.perforation = perf[cnt]
+                        c.perf_stride = perf[cnt]
+                        c.recompute = True
                         cnt += 1
             elif type(layer) == Sequential:
                 for c in layer:
                     if type(c) == Conv2dNormActivation:
-                        c[0].perforation = perf[cnt]
+                        c[0].perf_stride = perf[cnt]
+                        c[0].recompute = True
                         cnt += 1
                     if type(c) == InvertedResidual:
                         for cc in layer[0].conv:
                             if type(cc) == Conv2dNormActivation:
-                                cc[0].perforation = perf[cnt]
-                            #elif type(cc) ==
-                            cnt += 1
+                                cc[0].perf_stride = perf[cnt]
+                                cc[0].recompute = True
+                                cnt += 1
 
     def _get_perforation(self):
         perfs = []
         for layer in self.features:
             if type(layer) == Conv2dNormActivation:
-                perfs.append(layer[0].perforation)
+                perfs.append(layer[0].perf_stride)
             elif type(layer) == InvertedResidual:
                 for c in layer.block:
                     if type(c) == Conv2dNormActivation:
-                        perfs.append(c[0].perforation)
+                        perfs.append(c[0].perf_stride)
                     elif type(c) == SqueezeExcitation:
-                        perfs.append(c.fc1.perforation)
-                        perfs.append(c.fc2.perforation)
+                        perfs.append(c.fc1.perf_stride)
+                        perfs.append(c.fc2.perf_stride)
                     elif type(c) == PerforatedConv2d:
-                        perfs.append(c.perforation)
+                        perfs.append(c.perf_stride)
             elif type(layer) == Sequential:
                 for c in layer:
                     if type(c) == Conv2dNormActivation:
-                        perfs.append(c[0].perforation)
+                        perfs.append(c[0].perf_stride)
                     if type(c) == InvertedResidual:
                         for cc in layer[0].conv:
                             if type(cc) == Conv2dNormActivation:
-                                perfs.append(cc[0].perforation)
+                                perfs.append(cc[0].perf_stride)
+
+        self.perforation = perfs
         return perfs
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.features(x)
@@ -337,7 +350,7 @@ class MobileNetV3(nn.Module):
 
 def _mobilenet_v3_conf(
         arch: str, width_mult: float = 1.0, reduced_tail: bool = False, dilated: bool = False,
-        perforation_mode: str = "both",
+        perforation_mode: list = None,
                  grad_conv: bool = True, **kwargs: Any
 ):
     reduce_divider = 2 if reduced_tail else 1
@@ -348,7 +361,7 @@ def _mobilenet_v3_conf(
 
     if arch == "mobilenet_v3_large":
 
-        if type(perforation_mode) == str:
+        if type(perforation_mode) == tuple:
             perforation_mode = [perforation_mode] * (60 + 2)
 
         if 62 != len(perforation_mode):
@@ -373,7 +386,7 @@ def _mobilenet_v3_conf(
         last_channel = adjust_channels(1280 // reduce_divider)  # C5
     elif arch == "mobilenet_v3_small":
 
-        if type(perforation_mode) == str:
+        if type(perforation_mode) == tuple:
             perforation_mode = [perforation_mode] * 52
 
         if 52 != len(perforation_mode):

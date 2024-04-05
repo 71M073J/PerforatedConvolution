@@ -96,7 +96,7 @@ class Conv2dNormActivation(ConvNormActivation):
         dilation: Union[int, Tuple[int, int]] = 1,
         inplace: Optional[bool] = True,
         bias: Optional[bool] = None,
-        perforation_mode: str = None,
+        perforation_mode: tuple = None,
             grad_conv: bool = True
     ) -> None:
 

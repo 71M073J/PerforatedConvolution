@@ -80,11 +80,11 @@ def compare_speed():
     backwards = True
     for in_channels in [2, 64, 256]:
         l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
-        l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=True).to(device)
-        l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="both", kind=False).to(device)
-        # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="first").to(device)
-        l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="trip", kind=True).to(device)
-        l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode="none").to(device)
+        l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(2,2), kind=True).to(device)
+        l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(2,2), kind=False).to(device)
+        # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1,1)).to(device)
+        l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(3, 3), kind=True).to(device)
+        l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1, 1)).to(device)
         ls = [l1, l2, l3, l4, l5]
         os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
         total_times = [0, 0, 0, 0, 0]
@@ -131,7 +131,7 @@ def compare_speed():
         plt.plot(times[0], label=f"Normal Conv, {int(1000 * (total_times[0] / len(times[0]) * 1000)) / 1000}ms avg")
         for i in range(len(ls) - 1):
             plt.plot(times[i + 1],
-                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' + str(ls[i + 1].kind) if ls[i + 1].perforation != 'none' else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
+                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' + str(ls[i + 1].kind) if ls[i + 1].perforation != (1, 1) else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
         plt.legend()
         plt.ylabel("Time elapsed (s)")
         if backwards:
@@ -157,16 +157,17 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         for i, (batch, classes) in enumerate(dataset):
 
             if vary_perf is not None:
+                raise NotImplementedError("TODO with tuples")
                 if vary_perf == "incremental":
                     randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
-                    perfs = np.array(["trip"] * n_conv)
+                    perfs = np.array([(3, 3)] * n_conv)
                     perfs[np.min(randn):np.max(randn)] = np.array(["both"] * (np.max(randn) - np.min(randn)))
-                    perfs[np.max(randn):] = "none"
+                    perfs[np.max(randn):] = (1, 1)
                 elif vary_perf == "random":
                     rn = np.random.random(n_conv)
                     perfs = np.array(["both"] * n_conv)
-                    perfs[rn > 0.66666] = np.array(["none"] * len(perfs[rn > 0.66666]))
-                    perfs[rn < 0.33333] = np.array(["trip"] * len(perfs[rn < 0.33333]))
+                    perfs[rn > 0.66666] = np.array([(1, 1)] * len(perfs[rn > 0.66666]))
+                    perfs[rn < 0.33333] = np.array([(3, 3)] * len(perfs[rn < 0.33333]))
                 net._set_perforation(perfs)
             if eval_mode is not None:
                 net._set_perforation(p)
@@ -260,6 +261,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
     test_accs = []
+    train_mode = net._get_perforation()
     with torch.no_grad():
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
@@ -294,7 +296,7 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
             print("Average Epoch Test Loss:", l2.item() / (i + 1))
             print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
             ep_test_losses.append(l2.item() / (i + 1))
-
+    net._set_perforation(train_mode)
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
@@ -310,6 +312,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     loss_fn = nn.CrossEntropyLoss()
     if summarise:
         summary(net, input_size=(bs, 3, 32, 32))
+
     if dataset3 is None:
         dataset3 = dataset2
     net.to(device)
@@ -320,7 +323,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     n_epochs = epochs
     items = len(dataset)
     testitems = len(dataset2)
-    # TODO TRAIN TEST VALIDATE SPLIT
     losses = []
     ep_losses = []
     test_losses = []
@@ -333,48 +335,59 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     p = 0
     if eval_mode is not None:
         p = net._get_perforation()
-    minacc = 10
-
+    minacc = 1000
+    if type(net) == MobileNetV2:
+        perf = [(2, 2)] + [(1, 1)] * 51
+        print(net._get_perforation())
+    elif type(net) == ResNet:
+        perf = [(2, 2)] + [(1, 1)] * 24
+        print(net._get_perforation())
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
         if do_test or plot_loss:
             test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
                  report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
+        if type(net) == MobileNetV2:
+            perf = [(2, 2)] + [(1, 1)] * 51
+            print(net._get_perforation())
+        elif type(net) == ResNet:
+            perf = [(2, 2)] + [(1, 1)] * 24
+            print(net._get_perforation())
         if lr_scheduler is not None:
             lr_scheduler.step()
-        if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
+        if (epoch % test_every_n == (test_every_n - 1)) or plot_loss or validate:
             if (ep_test_losses[-1]) < minacc:
                 minacc = ep_test_losses[-1]
                 params.pop()
                 params.append(copy.deepcopy(net.state_dict()))
         net.train()
+    if validate:
+        net.load_state_dict(params[0])
+        net.eval()
+        if eval_mode is not None:
+            net._set_perforation([eval_mode] * n_conv)
+        class_accs3 = np.zeros((2, 15))
+        l3 = 0
+        valid_accs = []
+        with torch.no_grad():
+            for ii, (batch, classes) in enumerate(dataset3):
 
-    net.load_state_dict(params[0])
-    net.eval()
-    if eval_mode is not None:
-        net._set_perforation([eval_mode] * n_conv)
-    class_accs3 = np.zeros((2, 15))
-    l3 = 0
-    valid_accs = []
-    with torch.no_grad():
-        for ii, (batch, classes) in enumerate(dataset3):
+                pred = net(batch.to(device))
+                loss = loss_fn(pred, classes.to(device))
+                l3 += loss.detach().cpu()
+                acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+                valid_accs.append(torch.sum(acc) / bs)
+                for clas in classes[acc]:
+                    class_accs3[0, clas] += 1
+                for clas in classes:
+                    class_accs3[1, clas] += 1
+        print(f"Best test epoch:", file=file)
+        print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
+              file=file)
 
-            pred = net(batch.to(device))
-            loss = loss_fn(pred, classes.to(device))
-            l3 += loss.detach().cpu()
-            acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
-            valid_accs.append(torch.sum(acc) / bs)
-            for clas in classes[acc]:
-                class_accs3[0, clas] += 1
-            for clas in classes:
-                class_accs3[1, clas] += 1
-    print(f"Best test epoch:", file=file)
-    print(f"Validation loss: {l3 / (ii + 1)}, validation class accs: {class_accs3[0] / (class_accs3[1] + 1e-12)}",
-          file=file)
-
-    print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
-    print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
+        print(f"Epoch mean acc: {sum(valid_accs) / (ii + 1)}", file=file)
+        print(f"Validation mean acc: {sum(valid_accs) / (ii + 1)}")
     if save_net:
         torch.save(params, f"{run_name}_model.pth")
     if plot_loss:
@@ -413,8 +426,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 
 
 if __name__ == "__main__":
-    # compare_speed()
-    # quit()
+    #compare_speed()
+    #quit()
 
     augment = True
     tf = [transforms.ToTensor(), ]
@@ -474,7 +487,7 @@ if __name__ == "__main__":
 
     ]
     for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
-        for perf in ["trip", "both", ]:# "none", "start2"]:
+        for perf in [(2,2)]:#, (3,3), (1, 1), "start2"]:
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
@@ -486,36 +499,36 @@ if __name__ == "__main__":
                 extra += "152"
             if perf == "start2":
                 if n == mobilenet_v3_small:
-                    perf = ["both"] + ["none"] * 51
+                    perf = [(2, 2)] + [(1, 1)] * 51
                     extra += "-"
                 elif n == MobileNetV2:
-                    perf = ["both"] + ["none"] * 51
+                    perf = [(2, 2)] + [(1, 1)] * 51
                 elif n == mobilenet_v3_large:
-                    perf = ["both"] + ["none"] * 61
+                    perf = [(2, 2)] + [(1, 1)] * 61
                     extra += "-"
                 elif n == resnet18:
-                    perf = ["both"] + ["none"] * 24
+                    perf = [(2, 2)] + [(1, 1)] * 24
                     extra += "-"
                 elif n == resnet152:
                     extra += "-"
-                    perf = ["both"] + ["none"] * 200
+                    perf = [(2, 2)] + [(1, 1)] * 200
                 extra += "only_1st_perf"
             for grad in [True]:#, False]:
                 nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
     i = 0
     if not os.path.exists("./results"):
         os.mkdir("./results")
-    #nets = [resnet18(num_classes=10, perforation_mode="both", grad_conv=True)]
+    #nets = [resnet18(num_classes=10, perforation_mode=(2, 2), grad_conv=True)]
     for net in nets:
-        for eval_mode in ["none", "both", "trip"]:
+        for eval_mode in [(1, 1)]:#, (2, 2), (3, 3)]:
             for vary_perf in [None]:  # , "random"]:  # , "incremental"]:
                 # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
                 # TODO run convergence tests on fri machine
                 # vary_perf = "random"
                 run_name = type(net).__name__ + "-" + \
                            (net.extra_name + "-" if net.extra_name != "" else "") + \
-                           "perf_" + (f"{vary_perf}" if vary_perf is not None else net.perforation[0]) + \
-                           "-eval_" + eval_mode + \
+                           "perf_" + (f"{vary_perf}" if vary_perf is not None else f"{net.perforation[0][0]}_{net.perforation[0][1]}") + \
+                           "-eval_" + f"{eval_mode[0]}_{eval_mode[1]}" + \
                            f"-grad_{net.grad_conv}"
                 i += 1
                 plot_loss = False
@@ -545,7 +558,7 @@ if __name__ == "__main__":
                     #op = torch.optim.SGD(net.parameters(), lr=0.1, weight_decay=0.0001, )
                     #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=25)
                     lr_scheduler=None
-                    test_net(net, batch_size=bs, epochs=25, do_profiling=False, summarise=False, verbose=False,
+                    test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
                              make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
                              run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
                              validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler)
