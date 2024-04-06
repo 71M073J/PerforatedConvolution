@@ -18,7 +18,7 @@ class _InterpolateCustom(autograd.Function):
             if kind:
                 return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride, duplicate=True)
             else:
-                #return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride, duplicate=False)
+                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride, duplicate=False)
                 return interpolate_keep_values_conv(f_input, (shape[-2], shape[-1]), perf_stride=ctx.perf_stride)
                 return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
 
