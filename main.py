@@ -261,7 +261,9 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
          report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
     test_accs = []
-    train_mode = net._get_perforation()
+    train_mode = ""
+    if hasattr(net, "perforation"):
+        train_mode = net._get_perforation()
     with torch.no_grad():
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
@@ -296,7 +298,9 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
             print("Average Epoch Test Loss:", l2.item() / (i + 1))
             print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
             ep_test_losses.append(l2.item() / (i + 1))
-    net._set_perforation(train_mode)
+
+    if hasattr(net, "perforation"):
+        net._set_perforation(train_mode)
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
@@ -336,24 +340,12 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if eval_mode is not None:
         p = net._get_perforation()
     minacc = 1000
-    if type(net) == MobileNetV2:
-        perf = [(2, 2)] + [(1, 1)] * 51
-        print(net._get_perforation())
-    elif type(net) == ResNet:
-        perf = [(2, 2)] + [(1, 1)] * 24
-        print(net._get_perforation())
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
         if do_test or plot_loss:
             test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
                  report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
-        if type(net) == MobileNetV2:
-            perf = [(2, 2)] + [(1, 1)] * 51
-            print(net._get_perforation())
-        elif type(net) == ResNet:
-            perf = [(2, 2)] + [(1, 1)] * 24
-            print(net._get_perforation())
         if lr_scheduler is not None:
             lr_scheduler.step()
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss or validate:
