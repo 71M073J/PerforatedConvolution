@@ -5,7 +5,7 @@ import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
-from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel
+from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel, interpolate_keep_values_deconv
 
 
 class _InterpolateCustom(autograd.Function):
@@ -236,7 +236,8 @@ class PerforatedConv2d(nn.Module):
             self.perf_stride = (tmp_stride1, tmp_stride2)
             self.recompute = False
             # in_channels * out_channels * h * w * filter_size // stride1 // stride2
-            self.calculations = ((self.conv.in_channels * self.conv.out_channels *
+            if self.calculations == 0:
+                self.calculations = ((self.conv.in_channels * self.conv.out_channels *
                                   (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
                                   (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
                                   self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
@@ -245,11 +246,7 @@ class PerforatedConv2d(nn.Module):
                 f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
                 f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
                 f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
-        stutter = False
-        if stutter:
-            max1 = (x.shape[-2]-1) % (self.conv.stride[0] * self.perf_stride[0])
-            max2 = (x.shape[-1]-1) % (self.conv.stride[1] * self.perf_stride[1])
-            #max random offset
+
 
         x = F.conv2d(x, self.conv.weight, self.conv.bias,
                      (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
@@ -257,29 +254,6 @@ class PerforatedConv2d(nn.Module):
         if self.perf_stride != (1, 1):
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, self.kind, self.perf_stride)
         return x
-
-
-def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0,0)):
-    if inp.shape[-2:] == out_shape[-2:]:
-        return inp
-    interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
-                                kern(stride, device=inp.device), stride=stride,
-                                padding=(stride[0] - 1 + manual_offset[0], stride[1] - 1 + manual_offset[1]),
-                                output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
-        inp.shape[0],
-        inp.shape[1],
-        out_shape[-2],
-        out_shape[-1])
-    if duplicate:
-        if ((out_shape[-2] - 1) % stride[0]) > 0:
-            interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :, -1 - ((out_shape[-2] - 1) % stride[0]),
-                                                                   :][:,
-                                                                   :, None, :]
-        if ((out_shape[-1] - 1) % stride[1]) > 0:
-            interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
-                                                                   -1 - ((out_shape[-1] - 1) % stride[1])][:,
-                                                                   :, :, None]
-    return interp
 
 
 if __name__ == "__main__":

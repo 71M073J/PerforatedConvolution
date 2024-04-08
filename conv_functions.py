@@ -142,7 +142,6 @@ def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
 
     return input_tensor
 
-
 def kern_bicubic(k):
     raise NotImplementedError
 
@@ -212,3 +211,26 @@ def get_gaussian_kernel(stride, normalised=False, device=None):
         return k / k.sum()
     else:
         return k
+
+
+def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0,0)):
+    if inp.shape[-2:] == out_shape[-2:]:
+        return inp
+    interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
+                                kern(stride, device=inp.device), stride=stride,
+                                padding=(stride[0] - 1 + manual_offset[0], stride[1] - 1 + manual_offset[1]),
+                                output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
+        inp.shape[0],
+        inp.shape[1],
+        out_shape[-2],
+        out_shape[-1])
+    if duplicate:
+        if ((out_shape[-2] - 1) % stride[0]) > 0:
+            interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :, -1 - ((out_shape[-2] - 1) % stride[0]),
+                                                                   :][:,
+                                                                   :, None, :]
+        if ((out_shape[-1] - 1) % stride[1]) > 0:
+            interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
+                                                                   -1 - ((out_shape[-1] - 1) % stride[1])][:,
+                                                                   :, :, None]
+    return interp
