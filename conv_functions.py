@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -151,14 +152,62 @@ def kern1d(k, device):
 
 
 def get_lin_kernel(stride, normalised=False, device=None):
-    k = (kern1d(stride[0], device)[:, None] @ kern1d(stride[1], device)[None, :])[None, None, :, :] / (stride[0] * stride[1])
+    k = (kern1d(stride[0], device)[:, None] @ kern1d(stride[1], device)[None, :])[None, None, :, :] / (
+                stride[0] * stride[1])
+    if normalised:
+        return k / k.sum()
+    else:
+        return k
+def kern_polynomial(k, device, n):
+    return ((-torch.arange(-k + 1, k, dtype=torch.float32, device=device).abs() ** n) + k**n)/k**(n-1)
+
+def kern_test(k, device, factor=-1.0):
+    kern = kern1d(k, device)
+    if k == 1:
+        return kern
+    f_outer = kern[:k//2] * factor
+    kern[:k//2] += f_outer
+    kern[k//2:k-1] -= f_outer.flip((0,))
+
+    kern[k:-k//2 + 1] -= f_outer
+    kern[-k//2+1:] += f_outer.flip((0,))
+    return kern
+def get_test_kernel(stride, normalised=False, device=None):
+    k = (kern_test(stride[0], device)[:, None] @ kern_test(stride[1], device)[None, :])[None, None, :, :] / (
+                stride[0] * stride[1])
+    #import matplotlib.pyplot as plt
+    #plt.imshow(k[0,0])
+    #plt.show()
+    if normalised:
+        return k / k.sum()
+    else:
+        return k
+def get_quad_kernel(stride, normalised=False, device=None):
+    k = (kern_polynomial(stride[0], device, 2)[:, None] @ kern_polynomial(stride[1], device, 2)[None, :])[None, None, :, :] / (
+                stride[0] * stride[1])
     if normalised:
         return k / k.sum()
     else:
         return k
 
-def get_bicubic_kernel(stride, normalised=False):
-    k = (kern_bicubic(stride[0])[:, None] @ kern_bicubic(stride[1])[None, :])[None, None, :, :] / (stride[0] * stride[1])
+
+def get_bicubic_kernel(stride, normalised=False, device=None):
+    raise NotImplementedError
+
+def LoG(k, device, sigma=1):
+    return - torch.exp(
+        -0.5 * torch.square(torch.linspace(-(k - 1) / 2., (k - 1) / 2., k, device=device)) / (sigma * sigma)) * \
+    (1 - torch.square(torch.linspace(-(k - 1) / 2., (k - 1) / 2., k, device=device))) * (
+                - 1 / (torch.pi * sigma * sigma * sigma * sigma))
+def kern_gauss(k, device, sigma=1):
+    k2 = k*2-1
+    return torch.exp(
+        -0.5 * torch.square(torch.linspace(-(k2 - 1) / 2., (k2 - 1) / 2., k2, device=device)) / (sigma * sigma)) * k
+
+
+def get_gaussian_kernel(stride, normalised=False, device=None):
+    k = (kern_gauss(stride[0], device=device)[:, None] @ kern_gauss(stride[1], device=device)[None, :])[None, None, :, :] / (
+                stride[0] * stride[1])
     if normalised:
         return k / k.sum()
     else:

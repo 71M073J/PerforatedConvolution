@@ -16,9 +16,11 @@ class _InterpolateCustom(autograd.Function):
         ctx.orig_shape = tuple(f_input.shape[-2:])
         with torch.no_grad():
             if kind:
-                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride, duplicate=True)
+                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
+                                                      duplicate=True)
             else:
-                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride, duplicate=False)
+                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
+                                                      duplicate=False)
                 return interpolate_keep_values_conv(f_input, (shape[-2], shape[-1]), perf_stride=ctx.perf_stride)
                 return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
 
@@ -180,7 +182,6 @@ class PerforatedConv2d(nn.Module):
                  perforation_mode=None,
                  perf_stride=None) -> None:
 
-
         super().__init__()
         if perf_stride is None:
             if perforation_mode is not None:
@@ -202,12 +203,14 @@ class PerforatedConv2d(nn.Module):
         self.out_x = 0
         self.out_y = 0
         self.recompute = True
+        self.calculations = 0
 
     # noinspection PyTypeChecker
     def forward(self, x):
         if self.recompute:
             tmp = 0
-            self.out_x = int((x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 * self.conv.padding[
+            self.out_x = int(
+                (x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 * self.conv.padding[
                     0] - 1) // self.conv.stride[0] + 1)
             tmp_stride1 = self.perf_stride[0] + 1
             while tmp <= 1:
@@ -216,11 +219,12 @@ class PerforatedConv2d(nn.Module):
                     tmp_stride1 = 1
                     break
                 tmp = int((x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 *
-                               self.conv.padding[0] - 1) // (self.conv.stride[0] * tmp_stride1) + 1)
+                           self.conv.padding[0] - 1) // (self.conv.stride[0] * tmp_stride1) + 1)
 
             tmp = 0
-            self.out_y = int((x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 * self.conv.padding[
-                1] - 1) // self.conv.stride[1] + 1)
+            self.out_y = int(
+                (x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 * self.conv.padding[
+                    1] - 1) // self.conv.stride[1] + 1)
             tmp_stride2 = self.perf_stride[1] + 1
             while tmp <= 1:
                 tmp_stride2 -= 1
@@ -231,83 +235,83 @@ class PerforatedConv2d(nn.Module):
                            self.conv.padding[1] - 1) // (self.conv.stride[1] * tmp_stride2) + 1)
             self.perf_stride = (tmp_stride1, tmp_stride2)
             self.recompute = False
+            # in_channels * out_channels * h * w * filter_size // stride1 // stride2
+            self.calculations = ((self.conv.in_channels * self.conv.out_channels *
+                                  (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
+                                  (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
+                                  self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
+                                 self.conv.stride[0]) // self.conv.stride[1], \
+                f"{self.conv.in_channels}x" \
+                f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
+                f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
+                f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
+        stutter = False
+        if stutter:
+            max1 = (x.shape[-2]-1) % (self.conv.stride[0] * self.perf_stride[0])
+            max2 = (x.shape[-1]-1) % (self.conv.stride[1] * self.perf_stride[1])
+            #max random offset
 
         x = F.conv2d(x, self.conv.weight, self.conv.bias,
-                     (self.conv.stride[0] * self.perf_stride[0],
-                      self.conv.stride[1] * self.perf_stride[1]),
-                     self.conv.padding,
-                     self.conv.dilation, self.conv.groups)
+                     (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
+                     self.conv.padding, self.conv.dilation, self.conv.groups)
         if self.perf_stride != (1, 1):
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, self.kind, self.perf_stride)
         return x
 
 
-def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False):
+def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0,0)):
+    if inp.shape[-2:] == out_shape[-2:]:
+        return inp
     interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
-                                get_lin_kernel(stride, device=inp.device), stride=stride, padding=(stride[0] - 1, stride[1] - 1),
-                                output_padding=((out_shape[0] - 1) % stride[0], (out_shape[1] - 1) % stride[1])).view(
+                                kern(stride, device=inp.device), stride=stride,
+                                padding=(stride[0] - 1 + manual_offset[0], stride[1] - 1 + manual_offset[1]),
+                                output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
         inp.shape[0],
         inp.shape[1],
-        out_shape[0],
-        out_shape[1])
+        out_shape[-2],
+        out_shape[-1])
     if duplicate:
-        if ((out_shape[0] - 1) % stride[0]) > 0:
-            interp[:, :, -((out_shape[0] - 1) % stride[0]):, :] = interp[:, :, -1-((out_shape[0] - 1) % stride[0]), :][:,
-                                                                                        :, None, :]
-        if ((out_shape[1] - 1) % stride[1]) > 0:
-            interp[:, :, :, -((out_shape[1] - 1) % stride[1]):] = interp[:, :, :, -1-((out_shape[1] - 1) % stride[1])][:,
-                                                                  :, :, None]
+        if ((out_shape[-2] - 1) % stride[0]) > 0:
+            interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :, -1 - ((out_shape[-2] - 1) % stride[0]),
+                                                                   :][:,
+                                                                   :, None, :]
+        if ((out_shape[-1] - 1) % stride[1]) > 0:
+            interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
+                                                                   -1 - ((out_shape[-1] - 1) % stride[1])][:,
+                                                                   :, :, None]
     return interp
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import cv2
+    import os
+    from conv_functions import get_gaussian_kernel, get_test_kernel
 
-    sz1 = 5
-    sz2 = 4
-    sz21 = 10
-    sz22 = 7
-    a = torch.ones((sz1, sz2))
-    # a[1::2, ::2] = 1
-    # a[::2, 1::2] = 1
-    cv = nn.Conv2d(1, 1, 3, stride=2)
-    test = cv(a[np.newaxis, np.newaxis, :, :])
-    print(test.shape)
-
-    a = a * torch.arange(0, sz1 * sz2, 1).view(sz1, sz2)
-    a = torch.stack((a, a))
-    fig, axes = plt.subplots(1, 4)
-    axes[0].imshow(a[0, :, :], vmin=0, vmax=sz1 * sz2 - 1)
-    axes[0].set_title("Non-interpolated")
-    c = interpolate_keep_values(torch.stack((a, -a)), (sz21, sz22))
-    test = nn.ConvTranspose2d(2, 2, 3)
-    # interpolate_keep_values_deconv(1,1 , (1, 2))
-
-    print(c.shape)
-    inp = torch.stack((a, -a))
-    ex, ey = 15, 11
-    stride = (3, 3)
-    # c2 = interpolate_keep_values_conv(inp, (ex, ey), perf_stride=(3, 3))
-    c2 = interpolate_keep_values_deconv(inp, (ex, ey), stride=stride, duplicate=True)
-    axes[1].imshow(torch.squeeze(c)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
-    axes[1].set_title("\"Good\" interpolation")
-    axes[2].imshow(torch.squeeze(c2)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
-    axes[2].set_title("\"Good\" interpolation with conv")
-    d = F.interpolate(torch.stack((a, -a)), (sz21, sz22), mode="bilinear", align_corners=False)
-    # axes[3].imshow(torch.squeeze(d)[0, 0], vmin=0, vmax=sz1 * sz2 - 1)
-    tmp = torch.full((ex, ey), fill_value=1)
-    tmp[::stride[0], ::stride[1]] = a[0]
-    axes[3].imshow(tmp, vmin=0, vmax=sz1 * sz2 - 1)
-    axes[3].set_title("Normal interpolation")
-    plt.tight_layout()
-    plt.show()
-    fig, axes = plt.subplots(1, 3)
-    a = torch.rand((1, sz21, sz22))
-    a = F.conv2d(a, torch.tensor(
-        [[[[0.0625, 0.125, 0.0625], [0.125, 0.25, 0.125], [0.0625, 0.125, 0.0625]]]]))
-    b = interpolate_keep_values_conv(a[None, 0, ::2, ::2], (a.shape[-2], a.shape[-1]))
-    axes[0].imshow(a[0])
-    axes[0].set_title("original")
-    axes[1].imshow(b[0, 0])
-    axes[1].set_title("interpolated")
+    # assert os.file.exists("./in_channels_2.png")
+    im = torch.tensor(cv2.imread("../in_channels_2.png"), dtype=torch.float32).transpose(0, 2).transpose(1,
+                                                                                                         2).unsqueeze(0)
+    # im = torch.tensor(cv2.cvtColor(cv2.resize(cv2.imread("../landscape.jpg"), (0,0), fx=0.1, fy=0.1), cv2.COLOR_BGR2RGB), dtype=torch.float32).transpose(0,2).transpose(1,2).unsqueeze(0)
+    dims = im.shape
+    a, b = 1, 1
+    step = 4
+    fig, axes = plt.subplots(a, b * 2, figsize=(10, 5))
+    try:
+        axes[0][0]
+    except:
+        axes = [axes]
+    for ind1, i in enumerate(range(1, 1 + a * step, step)):
+        for ind2, j in enumerate(range(1, 1 + b * step, step)):
+            z = torch.full_like(im, 255.)
+            z[:, :, 1::5, 1::5] = im[:, :, 1::5, 1::5]
+            axes[ind1][ind2 * 2 + 1].imshow(z.squeeze().transpose(0, 2).transpose(0, 1) / 255.001)
+            # im = im[:, :, ::i, ::j+1]
+            # im = torch.cat((torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1)),
+            #                im.view(im.shape[0], im.shape[1], im.shape[2]//2, -1),
+            #                torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1))), dim=-1).view(im.shape[0], im.shape[1], im.shape[-2], -1)
+            a = interpolate_keep_values_deconv(im[:, :, ::5, ::5], (dims[0], dims[1], dims[2], dims[3]), stride=(5, 5),
+                                               duplicate=True).squeeze() / 255.00001
+            # a = a.view(dims[1], dims[2]//2, -1)[:, :, 1:-1].reshape(dims[1], dims[2], -1)
+            print(a.shape, a.transpose(0, 2).shape)
+            axes[ind1][ind2 * 2].imshow(a.transpose(0, 2).transpose(0, 1))
     plt.show()

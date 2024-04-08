@@ -187,6 +187,8 @@ class ResNet(nn.Module):
         conv_in_block = (2 if block == BasicBlock else 3 if block == Bottleneck else -1)
         if type(self.perforation) == tuple:
             self.perforation = [self.perforation] * (((sum(layers) * (conv_in_block + 1)) + 1))
+        elif type(self.perforation) != list:
+            raise NotImplementedError("Provide the perforation mode")
         if ((sum(layers) * (conv_in_block + 1)) + 1) != len(self.perforation):
             raise ValueError(
                 f"The perforation list length should equal the number of conv layers ({(((sum(layers) * (conv_in_block + 1)) + 1))})")
@@ -356,6 +358,27 @@ class ResNet(nn.Module):
                         perfs.append(ll.conv2.perf_stride)
                         perfs.append(ll.conv3.perf_stride)
         self.perforation = perfs
+        return perfs
+    def _get_n_calc(self):
+        perfs = [self.conv1.calculations]
+        ls = [self.layer1, self.layer2, self.layer3, self.layer4]
+        for l in ls:
+            if type(l) == BasicBlock:
+                perfs.append(l.conv1.calculations)
+                perfs.append(l.conv2.calculations)
+            elif type(l) == Bottleneck:
+                perfs.append(l.conv1.calculations)
+                perfs.append(l.conv2.calculations)
+                perfs.append(l.conv3.calculations)
+            elif type(l) == Sequential:
+                for ll in l:
+                    if type(ll) == BasicBlock:
+                        perfs.append(ll.conv1.calculations)
+                        perfs.append(ll.conv2.calculations)
+                    elif type(ll) == Bottleneck:
+                        perfs.append(ll.conv1.calculations)
+                        perfs.append(ll.conv2.calculations)
+                        perfs.append(ll.conv3.calculations)
         return perfs
 
     def _forward_impl(self, x: Tensor) -> Tensor:

@@ -142,7 +142,8 @@ class InvertedResidual(nn.Module):
         layers.append(
             Conv2dNormActivation(
                 cnf.expanded_channels, cnf.out_channels, kernel_size=1, norm_layer=norm_layer, activation_layer=None,
-                perforation_mode=perforation_mode[4 if (eq_channels and cnf.use_se) else (3 if cnf.use_se else 1)],grad_conv=grad_conv
+                perforation_mode=perforation_mode[4 if (eq_channels and cnf.use_se) else (3 if cnf.use_se else 1)],
+                grad_conv=grad_conv
             )
         )
 
@@ -334,6 +335,31 @@ class MobileNetV3(nn.Module):
 
         self.perforation = perfs
         return perfs
+
+    def _get_n_calc(self):
+        perfs = []
+        for layer in self.features:
+            if type(layer) == Conv2dNormActivation:
+                perfs.append(layer[0].calculations)
+            elif type(layer) == InvertedResidual:
+                for c in layer.block:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].calculations)
+                    elif type(c) == SqueezeExcitation:
+                        perfs.append(c.fc1.calculations)
+                        perfs.append(c.fc2.calculations)
+                    elif type(c) == PerforatedConv2d:
+                        perfs.append(c.calculations)
+            elif type(layer) == Sequential:
+                for c in layer:
+                    if type(c) == Conv2dNormActivation:
+                        perfs.append(c[0].calculations)
+                    if type(c) == InvertedResidual:
+                        for cc in layer[0].conv:
+                            if type(cc) == Conv2dNormActivation:
+                                perfs.append(cc[0].calculations)
+
+        return perfs
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.features(x)
 
@@ -363,6 +389,8 @@ def _mobilenet_v3_conf(
 
         if type(perforation_mode) == tuple:
             perforation_mode = [perforation_mode] * (60 + 2)
+        elif type(perforation_mode) != list:
+            raise NotImplementedError("Provide the perforation mode")
 
         if 62 != len(perforation_mode):
             raise ValueError(f"The perforation list length should equal the number of conv layers (62)")
@@ -388,6 +416,8 @@ def _mobilenet_v3_conf(
 
         if type(perforation_mode) == tuple:
             perforation_mode = [perforation_mode] * 52
+        elif type(perforation_mode) != list:
+            raise NotImplementedError("Provide the perforation mode")
 
         if 52 != len(perforation_mode):
             raise ValueError(f"The perforation list length should equal the number of conv layers (52)")

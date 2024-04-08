@@ -63,20 +63,21 @@ if __name__ == "__main__":
     # op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
     epochs = 200
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
-    with open("./resnet_long_test_out.txt", "w") as f:
-        test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
-                 make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
-                 run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
-                 lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
+    if False:
+        with open("./resnet_long_test_out.txt", "w") as f:
+            test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
+                     make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
+                     run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+                     lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
     from Architectures.resnet import resnet18
     net = resnet18(num_classes=10, perforation_mode=(2,2))
-    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0001)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
     #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
     epochs = 200
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
     with open("./resnet_perf_long_test_out.txt", "w") as f:
         test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
-                 make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
-                 run_name="long_resnet18_perf_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+                 make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=(1,1),
+                 run_name="long_resnet18_perf_test_eval1x1", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                  lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
