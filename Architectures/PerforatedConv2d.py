@@ -209,8 +209,8 @@ class PerforatedConv2d(nn.Module):
         self.out_y = 0
         self.n1 = 0
         self.n2 = 0
-        self.mod1 = ((self.out_x - 1) % self.perf_stride[0])
-        self.mod2 = ((self.out_y - 1) % self.perf_stride[1])
+        self.mod1 = ((self.out_x - 1) % self.perf_stride[0]) + 1
+        self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
         self.recompute = True
         self.calculations = 0
 
