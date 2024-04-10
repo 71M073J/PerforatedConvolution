@@ -142,6 +142,7 @@ def interpolate_keep_values(input_tensor, desired_shape, duplicate_edges=True):
 
     return input_tensor
 
+
 def kern_bicubic(k):
     raise NotImplementedError
 
@@ -152,37 +153,45 @@ def kern1d(k, device):
 
 def get_lin_kernel(stride, normalised=False, device=None):
     k = (kern1d(stride[0], device)[:, None] @ kern1d(stride[1], device)[None, :])[None, None, :, :] / (
-                stride[0] * stride[1])
+            stride[0] * stride[1])
     if normalised:
         return k / k.sum()
     else:
         return k
+
+
 def kern_polynomial(k, device, n):
-    return ((-torch.arange(-k + 1, k, dtype=torch.float32, device=device).abs() ** n) + k**n)/k**(n-1)
+    return ((-torch.arange(-k + 1, k, dtype=torch.float32, device=device).abs() ** n) + k ** n) / k ** (n - 1)
+
 
 def kern_test(k, device, factor=-1.0):
     kern = kern1d(k, device)
     if k == 1:
         return kern
-    f_outer = kern[:k//2] * factor
-    kern[:k//2] += f_outer
-    kern[k//2:k-1] -= f_outer.flip((0,))
+    f_outer = kern[:k // 2] * factor
+    kern[:k // 2] += f_outer
+    kern[k // 2:k - 1] -= f_outer.flip((0,))
 
-    kern[k:-k//2 + 1] -= f_outer
-    kern[-k//2+1:] += f_outer.flip((0,))
+    kern[k:-k // 2 + 1] -= f_outer
+    kern[-k // 2 + 1:] += f_outer.flip((0,))
     return kern
+
+
 def get_test_kernel(stride, normalised=False, device=None):
     k = (kern_test(stride[0], device)[:, None] @ kern_test(stride[1], device)[None, :])[None, None, :, :] / (
-                stride[0] * stride[1])
-    #import matplotlib.pyplot as plt
-    #plt.imshow(k[0,0])
-    #plt.show()
+            stride[0] * stride[1])
+    # import matplotlib.pyplot as plt
+    # plt.imshow(k[0,0])
+    # plt.show()
     if normalised:
         return k / k.sum()
     else:
         return k
+
+
 def get_quad_kernel(stride, normalised=False, device=None):
-    k = (kern_polynomial(stride[0], device, 2)[:, None] @ kern_polynomial(stride[1], device, 2)[None, :])[None, None, :, :] / (
+    k = (kern_polynomial(stride[0], device, 2)[:, None] @ kern_polynomial(stride[1], device, 2)[None, :])[None, None, :,
+        :] / (
                 stride[0] * stride[1])
     if normalised:
         return k / k.sum()
@@ -193,19 +202,23 @@ def get_quad_kernel(stride, normalised=False, device=None):
 def get_bicubic_kernel(stride, normalised=False, device=None):
     raise NotImplementedError
 
+
 def LoG(k, device, sigma=1):
     return - torch.exp(
         -0.5 * torch.square(torch.linspace(-(k - 1) / 2., (k - 1) / 2., k, device=device)) / (sigma * sigma)) * \
-    (1 - torch.square(torch.linspace(-(k - 1) / 2., (k - 1) / 2., k, device=device))) * (
+        (1 - torch.square(torch.linspace(-(k - 1) / 2., (k - 1) / 2., k, device=device))) * (
                 - 1 / (torch.pi * sigma * sigma * sigma * sigma))
+
+
 def kern_gauss(k, device, sigma=1):
-    k2 = k*2-1
+    k2 = k * 2 - 1
     return torch.exp(
         -0.5 * torch.square(torch.linspace(-(k2 - 1) / 2., (k2 - 1) / 2., k2, device=device)) / (sigma * sigma)) * k
 
 
 def get_gaussian_kernel(stride, normalised=False, device=None):
-    k = (kern_gauss(stride[0], device=device)[:, None] @ kern_gauss(stride[1], device=device)[None, :])[None, None, :, :] / (
+    k = (kern_gauss(stride[0], device=device)[:, None] @ kern_gauss(stride[1], device=device)[None, :])[None, None, :,
+        :] / (
                 stride[0] * stride[1])
     if normalised:
         return k / k.sum()
@@ -213,12 +226,12 @@ def get_gaussian_kernel(stride, normalised=False, device=None):
         return k
 
 
-def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0,0)):
+def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0, 0)):
     if inp.shape[-2:] == out_shape[-2:]:
         return inp
     interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
                                 kern(stride, device=inp.device), stride=stride,
-                                padding=(stride[0] - 1 + manual_offset[0], stride[1] - 1 + manual_offset[1]),
+                                padding=(stride[0] - 1 - manual_offset[0], stride[1] - 1 - manual_offset[1]),
                                 output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
         inp.shape[0],
         inp.shape[1],
@@ -226,11 +239,92 @@ def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern
         out_shape[-1])
     if duplicate:
         if ((out_shape[-2] - 1) % stride[0]) > 0:
-            interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :, -1 - ((out_shape[-2] - 1) % stride[0]),
-                                                                   :][:,
-                                                                   :, None, :]
-        if ((out_shape[-1] - 1) % stride[1]) > 0:
-            interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
-                                                                   -1 - ((out_shape[-1] - 1) % stride[1])][:,
-                                                                   :, :, None]
+            if manual_offset[0] == 0:
+                interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :,
+                                                                       -1 - ((out_shape[-2] - 1) % stride[0]),
+                                                                       :][:,
+                                                                       :, None, :]
+            else:
+                ...
+
+        if manual_offset[1] == 0:
+            if ((out_shape[-1] - 1) % stride[1]) > 0:
+                interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
+                                                                       -1 - ((out_shape[-1] - 1) % stride[1])][:,
+                                                                       :, :, None]
     return interp
+
+
+def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0, 0)):
+    # try to implement random offsets for improved learning
+    if inp.shape[-2:] == out_shape[-2:]:
+        return inp
+    interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
+                                kern(stride, device=inp.device), stride=stride,
+                                padding=(stride[0] - 1 - manual_offset[0], stride[1] - 1 - manual_offset[1]),
+                                output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
+        inp.shape[0],
+        inp.shape[1],
+        out_shape[-2] + 2 * manual_offset[0],
+        out_shape[-1] + 2 * manual_offset[1])[:, :, :out_shape[-2], :out_shape[-1]]
+    if duplicate:
+        d1 = ((out_shape[-2] - 1) % stride[0])
+        if d1 > 0:
+            if manual_offset[0] == 0:
+                interp[:, :, -((out_shape[-2] - 1) % stride[0]):, :] = interp[:, :,
+                                                                       -1 - ((out_shape[-2] - 1) % stride[0]), :][:, :,
+                                                                       None, :]
+            else:
+                interp[:, :, :manual_offset[0], :] = interp[:, :,manual_offset[0], :][:, :, None, :]
+                if d1 != stride[0]-1:
+                    interp[:, :, -((out_shape[-2] - 1) % stride[0]) + manual_offset[0]:, :] = interp[:, :,
+                                                                       -1 - ((out_shape[-2] - 1) % stride[0]) + manual_offset[0], :][:, :,
+                                                                       None, :]
+        d2 = ((out_shape[-1] - 1) % stride[1])
+        if d2 > 0:
+            if manual_offset[1] == 0:
+                interp[:, :, :, -((out_shape[-1] - 1) % stride[1]):] = interp[:, :, :,
+                                                                       -1 - ((out_shape[-1] - 1) % stride[1])][:,
+                                                                       :, :, None]
+            else:
+                interp[:, :, :, :manual_offset[1]] = interp[:, :, :, manual_offset[0]][:, :, :, None]
+                if d2 != stride[1]-1:
+                    interp[:, :, :, -((out_shape[-1] - 1) % stride[1]) + manual_offset[1]:] = interp[:, :, :,
+                                                                       -1 - ((out_shape[-1] - 1) % stride[1]) + manual_offset[1]][:,
+                                                                       :, :, None]
+    return interp
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    import cv2
+    import os
+
+    # assert os.file.exists("./in_channels_2.png")
+    # im = torch.tensor(cv2.imread("./in_channels_2.png"), dtype=torch.float32).transpose(0, 2).transpose(1,2).unsqueeze(0)
+    im = torch.stack((torch.zeros(25), torch.arange(0, 25, 1.)), dim=1).flatten()[1:].view(7, 7)
+    im = torch.stack((im, -im, im)).view(1, 3, 7, 7)
+    dims = im.shape
+    a, b = 1, 1
+    step = 4
+    fig, axes = plt.subplots(a, b * 2, figsize=(10, 5))
+    try:
+        axes[0][0]
+    except:
+        axes = [axes]
+    for ind1, i in enumerate(range(1, 1 + a * step, step)):
+        for ind2, j in enumerate(range(1, 1 + b * step, step)):
+            z = torch.full_like(im, 25.)
+            z[:, :, ::2, ::2] = im[:, :, ::2, ::2]
+            # axes[ind1][ind2 * 2 + 1].imshow(z.squeeze().transpose(0, 2).transpose(0, 1) / 25.001)
+            axes[ind1][ind2 * 2 + 1].imshow(im.squeeze().transpose(0, 2).transpose(0, 1) / 25.001)
+            # im = im[:, :, ::i, ::j+1]
+            # im = torch.cat((torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1)),
+            #                im.view(im.shape[0], im.shape[1], im.shape[2]//2, -1),
+            #                torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1))), dim=-1).view(im.shape[0], im.shape[1], im.shape[-2], -1)
+            a = interpolate_keep_values_deconv2(im / 25.001, (1, 3, 21, 21), stride=(3, 3),
+                                                duplicate=True, manual_offset=(2, 2)).squeeze()
+            # a = a.view(dims[1], dims[2]//2, -1)[:, :, 1:-1].reshape(dims[1], dims[2], -1)
+            print(a.shape, a.transpose(0, 2).shape)
+            axes[ind1][ind2 * 2].imshow(a.transpose(0, 2).transpose(0, 1))
+    plt.show()

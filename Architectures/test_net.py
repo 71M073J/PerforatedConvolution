@@ -60,7 +60,7 @@ class TestNet(nn.Module):
 if __name__ == "__main__":
     from Architectures.resnet import resnet18
     from Architectures.mobilenetv3 import mobilenet_v3_small
-    net = TestNet()
+    net = TestNet().cuda()
     #net = resnet18(num_classes=10, perforation_mode=(2,2))
     op = torch.optim.Adam(net.parameters(), lr=0.001)
     augment = True
@@ -85,4 +85,4 @@ if __name__ == "__main__":
         torchvision.datasets.CIFAR10(
             root='../data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
         num_workers=4)
-    test_net(net, run_name="testing", verbose=True, dataset=dataset1, dataset2=dataset2, summarise=True, op=op)
+    test_net(net, run_name="testing", verbose=False, dataset=dataset1, dataset2=dataset2, summarise=True, op=op)

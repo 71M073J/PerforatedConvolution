@@ -5,24 +5,24 @@ import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
-from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel, interpolate_keep_values_deconv
+from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel, \
+    interpolate_keep_values_deconv2
 
 
 class _InterpolateCustom(autograd.Function):
 
     @staticmethod
     def forward(ctx, f_input, params):
-        shape, ctx.grad_conv, kind, ctx.perf_stride = params
+        shape, ctx.grad_conv, ctx.offset, ctx.perf_stride = params
         ctx.orig_shape = tuple(f_input.shape[-2:])
         with torch.no_grad():
-            if kind:
-                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
-                                                      duplicate=True)
-            else:
-                return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
-                                                      duplicate=False)
-                return interpolate_keep_values_conv(f_input, (shape[-2], shape[-1]), perf_stride=ctx.perf_stride)
-                return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
+            return interpolate_keep_values_deconv2(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
+                                                   duplicate=True, manual_offset=ctx.offset)
+
+            #    return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
+            #                                          duplicate=False)
+            #    return interpolate_keep_values_conv(f_input, (shape[-2], shape[-1]), perf_stride=ctx.perf_stride)
+            #    return interpolate_keep_values(f_input, (shape[-2], shape[-1]))
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -31,9 +31,11 @@ class _InterpolateCustom(autograd.Function):
         with torch.no_grad():
             if ctx.grad_conv:
                 # todo pokaži razliko v gradientu med non-perforated, tem in samo vsako drugo vrednostjo
+                #raise NotImplementedError("offset mora bit tko da pravilno vzamne vrednosti, ne pa da je padding")
                 return F.conv2d(
                     grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
-                                     grad_output.shape[3]),  # bilinear interpolation, but inverse
+                                     grad_output.shape[3])[:, :, ctx.offset[0]:, ctx.offset[1]:],
+                    # bilinear interpolation, but inverse
                     get_lin_kernel(ctx.perf_stride, normalised=True, device=grad_output.device),
                     padding=(ctx.perf_stride[0] - 1, ctx.perf_stride[1] - 1),
                     stride=ctx.perf_stride).view(
@@ -50,8 +52,8 @@ class InterpolateFromPerforate(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, out_shape, grad_conv, kind, perf_stride):
-        return _InterpolateCustom.apply(x, (out_shape, grad_conv, kind, perf_stride))
+    def forward(self, x, out_shape, grad_conv, offset, perf_stride):
+        return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride))
 
 
 class InterPerfConv2dBNNActivDropout1x1Conv2dInter(nn.Module):
@@ -178,7 +180,6 @@ class PerforatedConv2d(nn.Module):
                  device: Any = None,
                  dtype: Any = None,
                  grad_conv: bool = True,
-                 kind=True,
                  perforation_mode=None,
                  perf_stride=None) -> None:
 
@@ -199,19 +200,20 @@ class PerforatedConv2d(nn.Module):
         self.perf_stride = perf_stride
         if type(padding) == str:
             if padding == "same":
-                padding = kernel_size//2
+                padding = kernel_size // 2
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias,
                               padding_mode, device, dtype)
         self.weight = self.conv.weight
         self.bias = self.conv.bias
-        self.kind = kind
         self.out_x = 0
         self.out_y = 0
+        self.n1 = 0
+        self.n2 = 0
         self.recompute = True
         self.calculations = 0
 
     # noinspection PyTypeChecker
-    def forward(self, x):
+    def forward(self, x, epoch_offset=0):
         if self.recompute:
             tmp = 0
             self.out_x = int(
@@ -239,25 +241,27 @@ class PerforatedConv2d(nn.Module):
                 tmp = int((x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 *
                            self.conv.padding[1] - 1) // (self.conv.stride[1] * tmp_stride2) + 1)
             self.perf_stride = (tmp_stride1, tmp_stride2)
+
             self.recompute = False
             # in_channels * out_channels * h * w * filter_size // stride1 // stride2
             if self.calculations == 0:
                 self.calculations = ((self.conv.in_channels * self.conv.out_channels *
-                                  (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
-                                  (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
-                                  self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
-                                 self.conv.stride[0]) // self.conv.stride[1], \
-                f"{self.conv.in_channels}x" \
-                f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
-                f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
-                f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
-
+                                      (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
+                                      (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
+                                      self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
+                                     self.conv.stride[0]) // self.conv.stride[1], \
+                    f"{self.conv.in_channels}x" \
+                    f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
+                    f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
+                    f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
 
         x = F.conv2d(x, self.conv.weight, self.conv.bias,
                      (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
                      self.conv.padding, self.conv.dilation, self.conv.groups)
         if self.perf_stride != (1, 1):
-            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, self.kind, self.perf_stride)
+            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
+            self.n1 = (self.n1 + 1) % self.perf_stride[0]
+            self.n2 = (self.n2 + 1) % self.perf_stride[1]
         return x
 
 
