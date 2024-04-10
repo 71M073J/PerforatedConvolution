@@ -21,7 +21,7 @@ if __name__ == "__main__":
     bs = 64
     if augment:
         tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
-                                            #transforms.RandomResizedCrop(size=32)
+                                            transforms.RandomResizedCrop(size=32)
                                             ]),
                    transforms.RandomHorizontalFlip()])
     if data == "cinic":
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                      lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
     from Architectures.resnet import resnet18
     net = resnet18(num_classes=10, perforation_mode=(2,2))
-    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0001)
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
     #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
     epochs = 200
