@@ -453,7 +453,10 @@ if __name__ == "__main__":
             batch_size=bs, shuffle=True,
             generator=g, )
     elif data == "cifar":
-
+        tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
+                                            # transforms.RandomResizedCrop(size=32)
+                                            ]),
+                   transforms.RandomHorizontalFlip()])
         tf.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
         tf_test.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
         tf = transforms.Compose(tf)
