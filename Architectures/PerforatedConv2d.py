@@ -186,6 +186,8 @@ class PerforatedConv2d(nn.Module):
         if perf_stride is None:
             if perforation_mode is not None:
                 perf_stride = perforation_mode
+            else:
+                perf_stride = (2, 2)
         self.grad_conv = grad_conv
         self.inter = InterpolateFromPerforate()
         self.in_channels = in_channels
@@ -195,6 +197,9 @@ class PerforatedConv2d(nn.Module):
         self.padding = padding
         self.dilation = dilation
         self.perf_stride = perf_stride
+        if type(padding) == str:
+            if padding == "same":
+                padding = kernel_size//2
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias,
                               padding_mode, device, dtype)
         self.weight = self.conv.weight

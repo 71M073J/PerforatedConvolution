@@ -78,68 +78,69 @@ def compare_speed():
     # device = "cpu"
     in_channels = 64
     backwards = True
-    for in_channels in [2, 64, 256]:
-        l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
-        l2 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(2,2), kind=True).to(device)
-        l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(2,2), kind=False).to(device)
-        # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1,1)).to(device)
-        l4 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(3, 3), kind=True).to(device)
-        l5 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1, 1)).to(device)
-        ls = [l1, l2, l3, l4, l5]
-        os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
-        total_times = [0, 0, 0, 0, 0]
-        times = [[], [], [], [], []]
-        # with torch.no_grad():
-        iters = 100
-        t0 = 0
-        for i in range(iters):
-            input_vec = torch.randn(size=(4096 // in_channels, in_channels, 64, 64), requires_grad=True).to(device)
-            for j, (l, o) in enumerate(zip(ls, os)):
-                o.zero_grad()
-                torch.cuda.current_stream().synchronize()
-                t0 = time.time()
-                out1 = l(input_vec)
-                if backwards:
-                    loss = out1.sum()
-                    loss.backward()
-                    o.step()
-                torch.cuda.current_stream().synchronize()
-                t1 = time.time() - t0
-                if i > 2:
-                    total_times[j] += t1
-                    times[j].append(t1)
-            if i % 10 == 0:
-                print(i)
+    for kern in [5]:
+        for in_channels in [2, 64, 256]:
+            # l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
+            l1 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(3, 3), kind=True).to(device)
+            l2 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(4, 4), kind=True).to(device)
+            l3 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(5, 5), kind=True).to(device)
+            # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1,1)).to(device)
+            l4 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(6, 6), kind=True).to(device)
+            l5 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(7, 7), kind=True).to(device)
+            ls = [l1, l2, l3, l4, l5]
+            os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
+            total_times = [0, 0, 0, 0, 0]
+            times = [[], [], [], [], []]
+            # with torch.no_grad():
+            iters = 100
+            t0 = 0
+            for i in range(iters):
+                input_vec = torch.randn(size=(4096 // in_channels, in_channels, 64, 64), requires_grad=True).to(device)
+                for j, (l, o) in enumerate(zip(ls, os)):
+                    o.zero_grad()
+                    torch.cuda.current_stream().synchronize()
+                    t0 = time.time()
+                    out1 = l(input_vec)
+                    if backwards:
+                        loss = out1.sum()
+                        loss.backward()
+                        o.step()
+                    torch.cuda.current_stream().synchronize()
+                    t1 = time.time() - t0
+                    if i > 2:
+                        total_times[j] += t1
+                        times[j].append(t1)
+                if i % 10 == 0:
+                    print(i)
 
-                # TODO:
-                # convergence time
-                # backward pass time
-                # final accuracy when converged
-                # loss plot
-                # softmax confidence/entropy of the output probability vector
-                # try as well, and other NN architectures
-                # mobilenet with CINIC10 dataset
-                # also try larger image dataset - maybe fruits?
+                    # TODO:
+                    # convergence time
+                    # backward pass time
+                    # final accuracy when converged
+                    # loss plot
+                    # softmax confidence/entropy of the output probability vector
+                    # try as well, and other NN architectures
+                    # mobilenet with CINIC10 dataset
+                    # also try larger image dataset - maybe fruits?
 
-        import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt
 
-        print(f"Normal convLayer: average of {total_times[0] / len(times[0])} seconds")
-        for i in range(len(ls) - 1):
-            print(ls[i + 1].kind)
-            print(
-                f"Perforated convLayer: {ls[i + 1].perforation}: average of {total_times[i + 1] / len(times[i + 1])} seconds")
-        plt.plot(times[0], label=f"Normal Conv, {int(1000 * (total_times[0] / len(times[0]) * 1000)) / 1000}ms avg")
-        for i in range(len(ls) - 1):
-            plt.plot(times[i + 1],
-                     label=f"PerfConv {ls[1 + i].perforation} {'conv interp:' + str(ls[i + 1].kind) if ls[i + 1].perforation != (1, 1) else ''}, {int(1000 * (total_times[i + 1] / len(times[i + 1]) * 1000)) / 1000}ms avg")
-        plt.legend()
-        plt.ylabel("Time elapsed (s)")
-        if backwards:
-            plt.savefig(f"in_channels_{in_channels}_with_backward.png")
-        else:
-            plt.savefig(f"in_channels_{in_channels}.png")
-        plt.show()
-        plt.clf()
+            print(f"Normal convLayer: average of {total_times[0] / len(times[0])} seconds")
+            for i in range(len(ls)):
+                print(ls[i].kind)
+                print(
+                    f"Perforated convLayer: {ls[i].perf_stride}: average of {total_times[i] / len(times[i])} seconds")
+            for i in range(len(ls)):
+                plt.plot(times[i],
+                         label=f"PerfConv {ls[i].perf_stride} {'conv interp:' + str(ls[i].kind) if ls[i].perf_stride != (1, 1) else ''}, {int(1000 * (total_times[i] / len(times[i]) * 1000)) / 1000}ms avg")
+            plt.legend()
+            plt.ylabel("Time elapsed (s)")
+            if backwards:
+                plt.savefig(f"_kern{kern}_in_channels_{in_channels}_with_backward.png")
+            else:
+                plt.savefig(f"in_channels_{in_channels}.png")
+            plt.show()
+            plt.clf()
 
 
 def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
@@ -302,15 +303,17 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
     if hasattr(net, "perforation"):
         net._set_perforation(train_mode)
 
+
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
-             make_imgs=False, test_every_n=5, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
+             make_imgs=False, test_every_n=1, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
              file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
-             do_test=True, dataset_init_fun=None, rng_gen: torch.Generator = None, save_net=False):
+             do_test=True, save_net=False):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     if do_test and test_every_n > epochs:
         do_test = False
-
+    if op is None:
+        op = torch.optim.Adam(net.parameters(), lr=0.001)
     # net = simpleNN(perf="both", interpolate_gradients=True)
     # net = Cifar10CnnModel(perf="both", interpolate_grad=True)
     loss_fn = nn.CrossEntropyLoss()
@@ -320,7 +323,6 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if dataset3 is None:
         dataset3 = dataset2
     net.to(device)
-
 
     # scheduler = ReduceLROnPlateau(op, 'min')
     # op = optim.SGD(net.parameters(), lr=0.001)
@@ -403,9 +405,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
                             ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
             axes[1].plot(
-                np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                np.arange((len(test_losses) // epochs), len(test_losses) + (len(test_losses) // epochs), (len(test_losses) // epochs)),
                 ep_test_losses, color="yellow", label="Avg Epoch Test loss")
-            axes[1].set_xticks(np.arange(0, len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+            axes[1].set_xticks(np.arange(0, len(test_losses) + (len(test_losses) // epochs), (len(test_losses) // epochs)),
                                np.arange(0, epochs + 1, 1), rotation=90)
             axes[1].set_xlabel("Epochs")
             axes[1].set_ylim(-0.15, 6)
@@ -418,8 +420,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
 
 
 if __name__ == "__main__":
-    #compare_speed()
-    #quit()
+    # compare_speed()
+    # quit()
 
     augment = True
     tf = [transforms.ToTensor(), ]
@@ -465,7 +467,6 @@ if __name__ == "__main__":
                 root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
             num_workers=4)
 
-    nets = [
         # TODO check the article for interpolation strategies
         #  todo different ways of interpolation/perforation (from the article) measuere the
         #   effect on just one layer(implement in architecture probably)
@@ -474,12 +475,15 @@ if __name__ == "__main__":
         #   such as gradient number size comparison in a distibution
         #   dont bother much (or at all) with speedup, focus on "accuracy" performance
 
-        # TODO treniranje do saturationa lossa - da dobimo hitrost konvergence pri treniranju (run on something not my laptop)
-        # TODO entropy of the output probability vector
+        #
+        # TODO entropy of the output probability vector - ugotovi zakaj ne dela prav
 
-    ]
-    for n in [resnet18, MobileNetV2, mobilenet_v3_small]:#, mobilenet_v3_large, resnet152]:
-        for perf in [(2,2)]:#, (3,3), (1, 1), "start2"]:
+    i = 0
+    if not os.path.exists("./results"):
+        os.mkdir("./results")
+    # nets = [resnet18(num_classes=10, perforation_mode=(2, 2), grad_conv=True)]
+    for n in [resnet18, MobileNetV2, mobilenet_v3_small]:  # , mobilenet_v3_large, resnet152]:
+        for perf in [(2, 2), (3, 3), (1, 1)]:  # , "largest"
             extra = ""
             if n == mobilenet_v3_small:
                 extra += "small"
@@ -505,58 +509,55 @@ if __name__ == "__main__":
                     extra += "-"
                     perf = [(2, 2)] + [(1, 1)] * 200
                 extra += "only_1st_perf"
-            for grad in [True]:#, False]:
-                nets.append(n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra))
-    i = 0
-    if not os.path.exists("./results"):
-        os.mkdir("./results")
-    #nets = [resnet18(num_classes=10, perforation_mode=(2, 2), grad_conv=True)]
-    for net in nets:
-        for eval_mode in [(1, 1)]:#, (2, 2), (3, 3)]:
-            for vary_perf in [None]:  # , "random"]:  # , "incremental"]:
-                # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
-                # TODO run convergence tests on fri machine
-                # vary_perf = "random"
-                run_name = type(net).__name__ + "-" + \
-                           (net.extra_name + "-" if net.extra_name != "" else "") + \
-                           "perf_" + (f"{vary_perf}" if vary_perf is not None else f"{net.perforation[0][0]}_{net.perforation[0][1]}") + \
-                           "-eval_" + f"{eval_mode[0]}_{eval_mode[1]}" + \
-                           f"-grad_{net.grad_conv}"
-                i += 1
-                plot_loss = False
-                validate = True
-                test_every_n = 1
-                #run_name += "_short"
-                if plot_loss:
-                    if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
-                            os.path.exists(f"./results/results_{run_name}.txt"):
-                        print(f"Run {run_name} already complete, skipping...")
-                        continue
-                    else:
-                        print(f"Starting {run_name}...")
-                # print(run_name)
-                make_imgs=True
-                if make_imgs:
-                    if os.path.exists(f"./imgs/{run_name}/grad_hist_e19.png") and \
-                            os.path.exists(f"./results/results_{run_name}.txt"):
-                        print(f"Run {run_name} already complete, skipping...")
-                        continue
-                    else:
-                        print(f"Starting {run_name}...")
-                with open(f"./results/results_{run_name}.txt", "w") as f:
-                    t = time.time()
-                    print(run_name)
-                    op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
-                    #op = torch.optim.SGD(net.parameters(), lr=0.1, weight_decay=0.0001, )
-                    #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=25)
-                    lr_scheduler=None
-                    test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
-                             make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f, eval_mode=eval_mode,
-                             run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
-                             validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler)
-                    duration = time.time() - t
-                    print(f"{run_name}\n{duration} seconds Elapsed", file=f)
-                    print(f"{run_name}\n{duration} seconds Elapsed")
+            for grad in [True]:  # , False]:
+                net = n(num_classes=10, perforation_mode=perf, grad_conv=grad, extra_name=extra)
+                for eval_mode in [(1, 1)]:  # , (2, 2), (3, 3)]:
+                    for vary_perf in [None]:  # , "random"]:  # , "incremental"]:
+                        # TODO SEPARATE CODE INTO SEPARATE FUNCTIONS THIS IS UGLY AF
+                        # TODO run convergence tests on fri machine
+                        # vary_perf = "random"
+                        run_name = type(net).__name__ + "-" + \
+                                   (net.extra_name + "-" if net.extra_name != "" else "") + \
+                                   "perf_" + (
+                                       f"{vary_perf}" if vary_perf is not None else f"{net.perforation[0][0]}_{net.perforation[0][1]}") + \
+                                   "-eval_" + f"{eval_mode[0]}_{eval_mode[1]}" + \
+                                   f"-grad_{net.grad_conv}"
+                        i += 1
+                        plot_loss = False
+                        validate = True
+                        test_every_n = 1
+                        # run_name += "_short"
+                        if plot_loss:
+                            if os.path.exists(f"./timelines/loss_timeline_{run_name}.png") and \
+                                    os.path.exists(f"./results/results_{run_name}.txt"):
+                                print(f"Run {run_name} already complete, skipping...")
+                                continue
+                            else:
+                                print(f"Starting {run_name}...")
+                        # print(run_name)
+                        make_imgs = True
+                        if make_imgs:
+                            if os.path.exists(f"./imgs/{run_name}/grad_hist_e19.png") and \
+                                    os.path.exists(f"./results/results_{run_name}.txt"):
+                                print(f"Run {run_name} already complete, skipping...")
+                                continue
+                            else:
+                                print(f"Starting {run_name}...")
+                        with open(f"./results/results_{run_name}.txt", "w") as f:
+                            t = time.time()
+                            print(run_name)
+                            op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0., )
+                            # op = torch.optim.SGD(net.parameters(), lr=0.1, weight_decay=0.0005, )
+                            # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=200)
+                            lr_scheduler = None
+                            test_net(net, batch_size=bs, epochs=10, do_profiling=False, summarise=False, verbose=False,
+                                     make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f,
+                                     eval_mode=eval_mode,
+                                     run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
+                                     validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler)
+                            duration = time.time() - t
+                            print(f"{run_name}\n{duration} seconds Elapsed", file=f)
+                            print(f"{run_name}\n{duration} seconds Elapsed")
 
     quit()
     h = PerforatedConv2d(3, 5, 3, stride=2, padding=2)
