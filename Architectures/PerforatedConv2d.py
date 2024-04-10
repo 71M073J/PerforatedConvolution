@@ -209,6 +209,8 @@ class PerforatedConv2d(nn.Module):
         self.out_y = 0
         self.n1 = 0
         self.n2 = 0
+        self.mod1 = ((self.out_x - 1) % self.perf_stride[0])
+        self.mod2 = ((self.out_y - 1) % self.perf_stride[1])
         self.recompute = True
         self.calculations = 0
 
@@ -259,9 +261,10 @@ class PerforatedConv2d(nn.Module):
                      (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
                      self.conv.padding, self.conv.dilation, self.conv.groups)
         if self.perf_stride != (1, 1):
+
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
-            self.n1 = (self.n1 + 1) % self.perf_stride[0]
-            self.n2 = (self.n2 + 1) % self.perf_stride[1]
+            self.n1 = (self.n1 + 1) % self.mod1
+            self.n2 = (self.n2 + 1) % self.mod2
         return x
 
 
