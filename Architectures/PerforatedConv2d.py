@@ -259,14 +259,19 @@ class PerforatedConv2d(nn.Module):
                     f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
                     f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
 
-        x = F.conv2d(x, self.conv.weight, self.conv.bias,
-                     (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
-                     self.conv.padding, self.conv.dilation, self.conv.groups)
+
         if self.perf_stride != (1, 1):
             self.n1 = (self.n1 + 1) % self.mod1
             self.n2 = (self.n2 + 1) % self.mod2
-            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
+            x = F.conv2d(x[:, :, self.n1:, self.n2:], self.conv.weight, self.conv.bias,
+                         (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
+                         self.conv.padding, self.conv.dilation, self.conv.groups)
 
+            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
+        else:
+            x = F.conv2d(x, self.conv.weight, self.conv.bias,
+                         (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
+                         self.conv.padding, self.conv.dilation, self.conv.groups)
         return x
 
 

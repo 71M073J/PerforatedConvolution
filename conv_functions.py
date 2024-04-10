@@ -147,12 +147,12 @@ def kern_bicubic(k):
     raise NotImplementedError
 
 
-def kern1d(k, device):
-    return k - torch.arange(-k + 1, k, dtype=torch.float32, device=device).abs()
+def kern1d(k, device, dtype):
+    return k - torch.arange(-k + 1, k, dtype=dtype, device=device).abs()
 
 
-def get_lin_kernel(stride, normalised=False, device=None):
-    k = (kern1d(stride[0], device)[:, None] @ kern1d(stride[1], device)[None, :])[None, None, :, :] / (
+def get_lin_kernel(stride, normalised=False, device=None, dtype=torch.float32):
+    k = (kern1d(stride[0], device, dtype)[:, None] @ kern1d(stride[1], device, dtype)[None, :])[None, None, :, :] / (
             stride[0] * stride[1])
     if normalised:
         return k / k.sum()
@@ -260,7 +260,7 @@ def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, ker
     if inp.shape[-2:] == out_shape[-2:]:
         return inp
     interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
-                                kern(stride, device=inp.device), stride=stride,
+                                kern(stride, device=inp.device, dtype=inp.dtype), stride=stride,
                                 padding=(stride[0] - 1 - manual_offset[0], stride[1] - 1 - manual_offset[1]),
                                 output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
         inp.shape[0],
