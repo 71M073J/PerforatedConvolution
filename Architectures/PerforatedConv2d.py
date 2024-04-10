@@ -207,10 +207,10 @@ class PerforatedConv2d(nn.Module):
         self.bias = self.conv.bias
         self.out_x = 0
         self.out_y = 0
-        self.n1 = 0
-        self.n2 = 0
-        self.mod1 = ((self.out_x - 1) % self.perf_stride[0]) + 1
-        self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
+        self.n1 = -1
+        self.n2 = -1
+        self.mod1 = 1
+        self.mod2 = 1
         self.recompute = True
         self.calculations = 0
 
@@ -244,6 +244,8 @@ class PerforatedConv2d(nn.Module):
                            self.conv.padding[1] - 1) // (self.conv.stride[1] * tmp_stride2) + 1)
             self.perf_stride = (tmp_stride1, tmp_stride2)
 
+            self.mod1 = ((self.out_x - 1) % self.perf_stride[0]) + 1
+            self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
             self.recompute = False
             # in_channels * out_channels * h * w * filter_size // stride1 // stride2
             if self.calculations == 0:
@@ -269,6 +271,9 @@ class PerforatedConv2d(nn.Module):
 
 
 if __name__ == "__main__":
+    print("test")
+
+    quit()
     import matplotlib.pyplot as plt
     import cv2
     import os
