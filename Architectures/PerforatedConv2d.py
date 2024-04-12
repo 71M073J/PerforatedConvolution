@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel, \
     interpolate_keep_values_deconv2
 
+class FuckThisShitException(Exception):
+    pass
 
 class _InterpolateCustom(autograd.Function):
 
@@ -34,15 +36,15 @@ class _InterpolateCustom(autograd.Function):
                 #raise NotImplementedError("offset mora bit tko da pravilno vzamne vrednosti, ne pa da je padding")
                 return F.conv2d(
                     grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
-                                     grad_output.shape[3])[:, :, ctx.offset[0]:, ctx.offset[1]:],
+                                     grad_output.shape[3]),
                     # bilinear interpolation, but inverse
                     get_lin_kernel(ctx.perf_stride, normalised=True, device=grad_output.device),
-                    padding=(ctx.perf_stride[0] - 1, ctx.perf_stride[1] - 1),
+                    padding=(ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
                     stride=ctx.perf_stride).view(
                     grad_output.shape[0],
                     grad_output.shape[1],
-                    - (grad_output.shape[2] // -ctx.perf_stride[0]),
-                    - (grad_output.shape[3] // -ctx.perf_stride[1])
+                    - (grad_output.shape[2] // -ctx.perf_stride[0]) + ctx.offset[0],
+                    - (grad_output.shape[3] // -ctx.perf_stride[1]) + ctx.offset[1]
                 ), None
             else:
                 return grad_output[:, :, ::ctx.perf_stride[0], ::ctx.perf_stride[1]], None
@@ -213,9 +215,16 @@ class PerforatedConv2d(nn.Module):
         self.mod2 = 1
         self.recompute = True
         self.calculations = 0
+        self.in_shape = None
 
+    def set_perf(self, perf):
+        self.perf_stride = perf
+        self.recompute = True
     # noinspection PyTypeChecker
     def forward(self, x, epoch_offset=0):
+        if x.shape[-2:] != self.in_shape:
+            self.in_shape = x.shape[-2:]
+            self.recompute = True
         if self.recompute:
             tmp = 0
             self.out_x = int(
@@ -253,20 +262,24 @@ class PerforatedConv2d(nn.Module):
                                       (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
                                       (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
                                       self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
-                                     self.conv.stride[0]) // self.conv.stride[1], \
+                                     self.conv.stride[0]) // self.conv.stride[1] // \
+                                    self.perf_stride[0] // self.perf_stride[1], \
                     f"{self.conv.in_channels}x" \
                     f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
                     f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
-                    f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//{self.conv.stride[0]}//{self.conv.stride[1]}"
+                    f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
+                    f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
 
-
+        #raise FuckThisShitException("NEKAJ NE DELA IN NE VEM KAJ")
         if self.perf_stride != (1, 1):
             self.n1 = (self.n1 + 1) % self.mod1
-            self.n2 = (self.n2 + 1) % self.mod2
-            x = F.conv2d(x[:, :, self.n1:, self.n2:], self.conv.weight, self.conv.bias,
+            if self.n1 == 0:
+                self.n2 = (self.n2 + 1) % self.mod2 #legit offseti
+            raise FuckThisShitException("padding je narobe za stride > 2")
+            x = F.conv2d(x, self.conv.weight, self.conv.bias,
                          (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
-                         self.conv.padding, self.conv.dilation, self.conv.groups)
-
+                         (self.conv.padding[0] + min(self.n1, self.conv.kernel_size[0]//2), self.conv.padding[1] + self.n2), self.conv.dilation, self.conv.groups)
+            #TODO FIX THIS (padding for offset start
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
         else:
             x = F.conv2d(x, self.conv.weight, self.conv.bias,
@@ -274,11 +287,28 @@ class PerforatedConv2d(nn.Module):
                          self.conv.padding, self.conv.dilation, self.conv.groups)
         return x
 
-
-if __name__ == "__main__":
+def test():
+    conv = PerforatedConv2d(2,2,3, padding="same")
+    x = torch.ones((1,2,6,6))
+    conv.set_perf((3,4))
+    for i in range(5):
+        conv(torch.ones((1,2,6,7)))
+    conv.conv.weight = nn.Parameter(torch.ones_like(conv.conv.weight))
+    conv.conv.bias = nn.Parameter(torch.zeros_like(conv.conv.bias))
+    x[:, :, 3:, :] = -x[:, :, 3:, :]
+    h = conv(x)
+    l = h.sum()
+    l.backward()
+    conv.zero_grad()
+    h = conv(x)
+    l = h.sum()
+    l.backward()
     print("test")
 
     quit()
+
+if __name__ == "__main__":
+    test()
     import matplotlib.pyplot as plt
     import cv2
     import os
@@ -305,7 +335,7 @@ if __name__ == "__main__":
             # im = torch.cat((torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1)),
             #                im.view(im.shape[0], im.shape[1], im.shape[2]//2, -1),
             #                torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1))), dim=-1).view(im.shape[0], im.shape[1], im.shape[-2], -1)
-            a = interpolate_keep_values_deconv(im[:, :, ::5, ::5], (dims[0], dims[1], dims[2], dims[3]), stride=(5, 5),
+            a = interpolate_keep_values_deconv2(im[:, :, ::5, ::5], (dims[0], dims[1], dims[2], dims[3]), stride=(5, 5),
                                                duplicate=True).squeeze() / 255.00001
             # a = a.view(dims[1], dims[2]//2, -1)[:, :, 1:-1].reshape(dims[1], dims[2], -1)
             print(a.shape, a.transpose(0, 2).shape)

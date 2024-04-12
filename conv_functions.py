@@ -261,12 +261,14 @@ def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, ker
         return inp
     interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
                                 kern(stride, device=inp.device, dtype=inp.dtype), stride=stride,
-                                padding=(stride[0] - 1 - manual_offset[0], stride[1] - 1 - manual_offset[1]),
+                                padding=(stride[0] - 1, stride[1] - 1),
                                 output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
         inp.shape[0],
         inp.shape[1],
         out_shape[-2] + 2 * manual_offset[0],
-        out_shape[-1] + 2 * manual_offset[1])[:, :, :out_shape[-2], :out_shape[-1]]
+        out_shape[-1] + 2 * manual_offset[1])[:, :, manual_offset[0]:out_shape[-2]+manual_offset[0],
+                                                    manual_offset[1]:out_shape[-1]+manual_offset[1]]
+
     if duplicate:
         d1 = ((out_shape[-2] - 1) % stride[0])
         if d1 > 0:
