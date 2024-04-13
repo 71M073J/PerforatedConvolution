@@ -255,19 +255,23 @@ def interpolate_keep_values_deconv(inp, out_shape, stride, duplicate=False, kern
     return interp
 
 
-def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0, 0)):
+def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, kern=get_lin_kernel, manual_offset=(0, 0), mod_offset=(0,0)):
     # try to implement random offsets for improved learning
     if inp.shape[-2:] == out_shape[-2:]:
         return inp
+    #todo
+    # oziroma namesto parametra forward pad lahko že takrat izračunamo kak mora bit interpolation padding?
+    #raise NotImplementedError("manual offsset je apparently narobbe, oz rabimo nov parameter za conv forward padding")
+    x = stride[0] + mod_offset[0]-1
+    y = stride[1] + mod_offset[1]-1
     interp = F.conv_transpose2d(inp.view(inp.shape[0] * inp.shape[1], 1, inp.shape[2], inp.shape[3]),
                                 kern(stride, device=inp.device, dtype=inp.dtype), stride=stride,
-                                padding=(stride[0] - 1, stride[1] - 1),
-                                output_padding=((out_shape[-2] - 1) % stride[0], (out_shape[-1] - 1) % stride[1])).view(
+                                padding=0,
+                                output_padding=0)[:, :, x:x+out_shape[-2], y:y+out_shape[-1]].view(
         inp.shape[0],
         inp.shape[1],
-        out_shape[-2] + 2 * manual_offset[0],
-        out_shape[-1] + 2 * manual_offset[1])[:, :, manual_offset[0]:out_shape[-2]+manual_offset[0],
-                                                    manual_offset[1]:out_shape[-1]+manual_offset[1]]
+        out_shape[-2],
+        out_shape[-1])
 
     if duplicate:
         d1 = ((out_shape[-2] - 1) % stride[0])

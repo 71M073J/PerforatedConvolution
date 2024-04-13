@@ -15,11 +15,11 @@ class _InterpolateCustom(autograd.Function):
 
     @staticmethod
     def forward(ctx, f_input, params):
-        shape, ctx.grad_conv, ctx.offset, ctx.perf_stride = params
+        shape, ctx.grad_conv, ctx.offset, ctx.perf_stride, ctx.mod_offset, ctx.forward_pad = params
         ctx.orig_shape = tuple(f_input.shape[-2:])
         with torch.no_grad():
             return interpolate_keep_values_deconv2(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
-                                                   duplicate=True, manual_offset=ctx.offset)
+                                                   duplicate=True, manual_offset=ctx.offset, mod_offset=ctx.mod_offset)
 
             #    return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
             #                                          duplicate=False)
@@ -33,18 +33,20 @@ class _InterpolateCustom(autograd.Function):
         with torch.no_grad():
             if ctx.grad_conv:
                 # todo pokaži razliko v gradientu med non-perforated, tem in samo vsako drugo vrednostjo
-                #raise NotImplementedError("offset mora bit tko da pravilno vzamne vrednosti, ne pa da je padding")
+                #raise NotImplementedError("zdej je Forward pass vsaj pravilno narejen")
+                x = ctx.perf_stride[0] + ctx.mod_offset[0] - 1
+                y = ctx.perf_stride[1] + ctx.mod_offset[1] - 1
                 return F.conv2d(
                     grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
                                      grad_output.shape[3]),
                     # bilinear interpolation, but inverse
                     get_lin_kernel(ctx.perf_stride, normalised=True, device=grad_output.device),
-                    padding=(ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
+                    padding=(x,y),#(ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
                     stride=ctx.perf_stride).view(
                     grad_output.shape[0],
                     grad_output.shape[1],
-                    - (grad_output.shape[2] // -ctx.perf_stride[0]) + ctx.offset[0],
-                    - (grad_output.shape[3] // -ctx.perf_stride[1]) + ctx.offset[1]
+                    ctx.orig_shape[-2],
+                    ctx.orig_shape[-1]
                 ), None
             else:
                 return grad_output[:, :, ::ctx.perf_stride[0], ::ctx.perf_stride[1]], None
@@ -54,8 +56,8 @@ class InterpolateFromPerforate(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, out_shape, grad_conv, offset, perf_stride):
-        return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride))
+    def forward(self, x, out_shape, grad_conv, offset, perf_stride, mod_offset, forward_pad):
+        return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride,mod_offset, forward_pad))
 
 
 class InterPerfConv2dBNNActivDropout1x1Conv2dInter(nn.Module):
@@ -275,12 +277,16 @@ class PerforatedConv2d(nn.Module):
             self.n1 = (self.n1 + 1) % self.mod1
             if self.n1 == 0:
                 self.n2 = (self.n2 + 1) % self.mod2 #legit offseti
-            raise FuckThisShitException("padding je narobe za stride > 2")
+            #raise FuckThisShitException("padding je narobe za stride > 2")
+            mod_offset = (self.mod1 - self.n1)%self.mod1,(self.mod2 - self.n2)%self.mod2
+            forward_pad = (self.conv.padding[0] + mod_offset[0],
+                          self.conv.padding[1] + mod_offset[1])
             x = F.conv2d(x, self.conv.weight, self.conv.bias,
                          (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
-                         (self.conv.padding[0] + min(self.n1, self.conv.kernel_size[0]//2), self.conv.padding[1] + self.n2), self.conv.dilation, self.conv.groups)
+                         forward_pad, self.conv.dilation, self.conv.groups)
             #TODO FIX THIS (padding for offset start
-            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride)
+            x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride,
+                           mod_offset, x.shape[-2:])
         else:
             x = F.conv2d(x, self.conv.weight, self.conv.bias,
                          (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
@@ -289,13 +295,16 @@ class PerforatedConv2d(nn.Module):
 
 def test():
     conv = PerforatedConv2d(2,2,3, padding="same")
-    x = torch.ones((1,2,6,6))
+    x = torch.ones((1,2,6,7))
     conv.set_perf((3,4))
-    for i in range(5):
-        conv(torch.ones((1,2,6,7)))
+    torch.set_printoptions(linewidth=999)
     conv.conv.weight = nn.Parameter(torch.ones_like(conv.conv.weight))
     conv.conv.bias = nn.Parameter(torch.zeros_like(conv.conv.bias))
     x[:, :, 3:, :] = -x[:, :, 3:, :]
+    for i in range(5):
+        h = conv(x)
+        l = h.sum()
+        l.backward()
     h = conv(x)
     l = h.sum()
     l.backward()
