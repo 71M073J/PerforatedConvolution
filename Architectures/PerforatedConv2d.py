@@ -8,8 +8,10 @@ import torch.nn.functional as F
 from conv_functions import interpolate_keep_values_conv, interpolate_keep_values, get_lin_kernel, \
     interpolate_keep_values_deconv2
 
+
 class FuckThisShitException(Exception):
     pass
+
 
 class _InterpolateCustom(autograd.Function):
 
@@ -33,7 +35,7 @@ class _InterpolateCustom(autograd.Function):
         with torch.no_grad():
             if ctx.grad_conv:
                 # todo pokaži razliko v gradientu med non-perforated, tem in samo vsako drugo vrednostjo
-                #raise NotImplementedError("zdej je Forward pass vsaj pravilno narejen")
+                # raise NotImplementedError("zdej je Forward pass vsaj pravilno narejen")
                 x = ctx.perf_stride[0] + ctx.mod_offset[0] - 1
                 y = ctx.perf_stride[1] + ctx.mod_offset[1] - 1
                 return F.conv2d(
@@ -41,7 +43,7 @@ class _InterpolateCustom(autograd.Function):
                                      grad_output.shape[3]),
                     # bilinear interpolation, but inverse
                     get_lin_kernel(ctx.perf_stride, normalised=True, device=grad_output.device),
-                    padding=(x,y),#(ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
+                    padding=(x, y),  # (ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
                     stride=ctx.perf_stride).view(
                     grad_output.shape[0],
                     grad_output.shape[1],
@@ -57,7 +59,7 @@ class InterpolateFromPerforate(nn.Module):
         super().__init__()
 
     def forward(self, x, out_shape, grad_conv, offset, perf_stride, mod_offset, forward_pad):
-        return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride,mod_offset, forward_pad))
+        return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride, mod_offset, forward_pad))
 
 
 class InterPerfConv2dBNNActivDropout1x1Conv2dInter(nn.Module):
@@ -211,17 +213,19 @@ class PerforatedConv2d(nn.Module):
         self.bias = self.conv.bias
         self.out_x = 0
         self.out_y = 0
-        self.n1 = -1
-        self.n2 = -1
+        self.n1 = 0
+        self.n2 = 0
         self.mod1 = 1
         self.mod2 = 1
         self.recompute = True
         self.calculations = 0
         self.in_shape = None
+        self.do_offsets = True
 
     def set_perf(self, perf):
         self.perf_stride = perf
         self.recompute = True
+
     # noinspection PyTypeChecker
     def forward(self, x, epoch_offset=0):
         if x.shape[-2:] != self.in_shape:
@@ -272,31 +276,35 @@ class PerforatedConv2d(nn.Module):
                     f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
                     f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
 
-        #raise FuckThisShitException("NEKAJ NE DELA IN NE VEM KAJ")
+        # raise FuckThisShitException("NEKAJ NE DELA IN NE VEM KAJ")
         if self.perf_stride != (1, 1):
-            self.n1 = (self.n1 + 1) % self.mod1
-            if self.n1 == 0:
-                self.n2 = (self.n2 + 1) % self.mod2 #legit offseti
-            #raise FuckThisShitException("padding je narobe za stride > 2")
-            mod_offset = (self.mod1 - self.n1)%self.mod1,(self.mod2 - self.n2)%self.mod2
+            # raise FuckThisShitException("padding je narobe za stride > 2")
+            mod_offset = (self.mod1 - self.n1) % self.mod1, (self.mod2 - self.n2) % self.mod2
             forward_pad = (self.conv.padding[0] + mod_offset[0],
-                          self.conv.padding[1] + mod_offset[1])
+                           self.conv.padding[1] + mod_offset[1])
             x = F.conv2d(x, self.conv.weight, self.conv.bias,
                          (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
                          forward_pad, self.conv.dilation, self.conv.groups)
-            #TODO FIX THIS (padding for offset start
+            # TODO FIX THIS (padding for offset start
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride,
                            mod_offset, x.shape[-2:])
+
+            if self.do_offsets:
+                self.n1 = (self.n1 + 1) % self.mod1
+                if self.n1 == 0:
+                    self.n2 = (self.n2 + 1) % self.mod2  # legit offseti
         else:
             x = F.conv2d(x, self.conv.weight, self.conv.bias,
                          (self.conv.stride[0] * self.perf_stride[0], self.conv.stride[1] * self.perf_stride[1]),
                          self.conv.padding, self.conv.dilation, self.conv.groups)
         return x
 
+
 def test():
-    conv = PerforatedConv2d(2,2,3, padding="same")
-    x = torch.ones((1,2,6,7))
-    conv.set_perf((3,4))
+    print("test if it works with any forward padding")
+    conv = PerforatedConv2d(2, 2, 3, padding="same")
+    x = torch.ones((1, 2, 6, 1))
+    conv.set_perf((2, 1))
     torch.set_printoptions(linewidth=999)
     conv.conv.weight = nn.Parameter(torch.ones_like(conv.conv.weight))
     conv.conv.bias = nn.Parameter(torch.zeros_like(conv.conv.bias))
@@ -316,7 +324,10 @@ def test():
 
     quit()
 
+
 if __name__ == "__main__":
+    print("CHECK IF THE BACKWARD INDEXING IS CORRECTLY OFFSET FOR GRADIENTS")
+    print("ALSO CHECK IF THE TEST net.eval and net.train fuck with the indexing mybe")
     test()
     import matplotlib.pyplot as plt
     import cv2
@@ -345,7 +356,7 @@ if __name__ == "__main__":
             #                im.view(im.shape[0], im.shape[1], im.shape[2]//2, -1),
             #                torch.zeros((im.shape[0], im.shape[1], im.shape[2]//2, 1))), dim=-1).view(im.shape[0], im.shape[1], im.shape[-2], -1)
             a = interpolate_keep_values_deconv2(im[:, :, ::5, ::5], (dims[0], dims[1], dims[2], dims[3]), stride=(5, 5),
-                                               duplicate=True).squeeze() / 255.00001
+                                                duplicate=True).squeeze() / 255.00001
             # a = a.view(dims[1], dims[2]//2, -1)[:, :, 1:-1].reshape(dims[1], dims[2], -1)
             print(a.shape, a.transpose(0, 2).shape)
             axes[ind1][ind2 * 2].imshow(a.transpose(0, 2).transpose(0, 1))

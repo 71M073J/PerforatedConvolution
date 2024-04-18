@@ -259,8 +259,9 @@ def interpolate_keep_values_deconv2(inp, out_shape, stride, duplicate=False, ker
     # try to implement random offsets for improved learning
     if inp.shape[-2:] == out_shape[-2:]:
         return inp
-    #todo
+    #todo test if you can just learn the interpolation kernel? (prob not because this is in backward)
     # oziroma namesto parametra forward pad lahko že takrat izračunamo kak mora bit interpolation padding?
+    #TODO MAYBE EASIER WITH DEFORMABLE CONV2Dd
     #raise NotImplementedError("manual offsset je apparently narobbe, oz rabimo nov parameter za conv forward padding")
     x = stride[0] + mod_offset[0]-1
     y = stride[1] + mod_offset[1]-1
