@@ -152,6 +152,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
     networkCallTime = 0
     class_accs = np.zeros((2, 15))
     weights = []
+    net._set_perforation(p)
     with ExitStack() as stack:
         if do_profiling:
             prof = stack.enter_context(torch.autograd.profiler.profile(profile_memory=True, use_cuda=True))
@@ -170,15 +171,13 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     perfs[rn > 0.66666] = np.array([(1, 1)] * len(perfs[rn > 0.66666]))
                     perfs[rn < 0.33333] = np.array([(3, 3)] * len(perfs[rn < 0.33333]))
                 net._set_perforation(perfs)
-            if eval_mode is not None:
-                net._set_perforation(p)
             batch = batch.to(device)
             t0 = time.time()
             pred = net(batch)
             acc = torch.sum(F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes) / bs
             train_accs.append(acc)
-            if i > 5:
-                networkCallTime += time.time() - t0
+            torch.cuda.synchronize()
+            networkCallTime += time.time() - t0
             loss = loss_fn(pred, classes.to(device))
             loss.backward()
             if make_imgs:
@@ -345,6 +344,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name)
+
+
         if do_test or plot_loss:
             test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
                  report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)

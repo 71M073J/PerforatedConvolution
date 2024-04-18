@@ -42,7 +42,7 @@ class _InterpolateCustom(autograd.Function):
                     grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
                                      grad_output.shape[3]),
                     # bilinear interpolation, but inverse
-                    get_lin_kernel(ctx.perf_stride, normalised=True, device=grad_output.device),
+                    get_lin_kernel(ctx.perf_stride, normalised=False, device=grad_output.device),
                     padding=(x, y),  # (ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
                     stride=ctx.perf_stride).view(
                     grad_output.shape[0],
@@ -198,6 +198,8 @@ class PerforatedConv2d(nn.Module):
 
 
 def test():
+    print("tesst with differrent train/eval perforation combinations, also test with non-normalised backwards interpo kernel")
+    print("TODO test if gradient magnitudes are caused by normalised kernel in backwards for interpolation gradient aggregating")
     print("test if it works with any forward padding")
     conv = PerforatedConv2d(2, 2, 1, padding="same")
     x = torch.ones((1, 2, 8, 8))
@@ -225,6 +227,10 @@ def test():
 if __name__ == "__main__":
     print("CHECK IF THE BACKWARD INDEXING IS CORRECTLY OFFSET FOR GRADIENTS")
     print("ALSO CHECK IF THE TEST net.eval and net.train fuck with the indexing mybe")
+    print("\n\n")
+    print("SHIT PERFORMANCE CAUSED BY 1x1 EVAL MODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    print("\n\n")
     test()
     import matplotlib.pyplot as plt
     import cv2
