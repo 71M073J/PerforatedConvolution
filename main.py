@@ -386,7 +386,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if save_net:
         torch.save(params, f"{run_name}_model.pth")
     if plot_loss:
-        test_losses.append(np.nan)
+        #test_losses.append(np.nan)
         fig, axes = plt.subplots(1, 2 if do_test else 1, sharey=True,
                                  figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
         ax1 = axes[0] if do_test else axes
@@ -399,21 +399,27 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                        np.arange(0, epochs + 1, 1), rotation=90)
         ax1.set_xlabel("Epochs")
         ax1.set_ylabel("Loss")
-        ax1.set_ylim(-0.15, 6)
+        if do_test:
+            test_losses = np.array(test_losses)
+            axes[0].errorbar(
+                np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+                ep_test_losses,[test_losses[x*(len(test_losses)//epochs):(x+1)*(len(test_losses)//epochs - 1)].std()**0.5 for x in range(epochs)], capsize=3,
+                label="Test losses")
+            #axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
+            #                ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
+            #axes[0].plot(
+            #    np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
+            #    ep_test_losses, color="g", label="Avg Epoch Test loss")
+            #axes[1].set_xticks(np.arange(0, len(test_losses), (len(test_losses) // epochs)),
+            #                   np.arange(0, epochs + 1, 1), rotation=90)
+            #axes[1].set_xlabel("Epochs")
+            #axes[1].set_ylim(-0.15, 6)
+            #axes[1].legend()
+            #axes[1].grid()
+
+        ax1.set_ylim(-0.15, 8)
         ax1.legend()
         ax1.grid()
-        if do_test:
-            axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
-                            ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
-            axes[1].plot(
-                np.arange((len(test_losses) // epochs), len(test_losses) + (len(test_losses) // epochs), (len(test_losses) // epochs)),
-                ep_test_losses, color="yellow", label="Avg Epoch Test loss")
-            axes[1].set_xticks(np.arange(0, len(test_losses) + (len(test_losses) // epochs), (len(test_losses) // epochs)),
-                               np.arange(0, epochs + 1, 1), rotation=90)
-            axes[1].set_xlabel("Epochs")
-            axes[1].set_ylim(-0.15, 6)
-            axes[1].legend()
-            axes[1].grid()
         plt.tight_layout()
         plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
         # plt.show()
@@ -550,7 +556,7 @@ if __name__ == "__main__":
                             # op = torch.optim.SGD(net.parameters(), lr=0.1, weight_decay=0.0005, )
                             # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=200)
                             lr_scheduler = None
-                            test_net(net, batch_size=bs, epochs=10, do_profiling=False, summarise=False, verbose=False,
+                            test_net(net, batch_size=bs, epochs=2, do_profiling=False, summarise=False, verbose=False,
                                      make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f,
                                      eval_mode=eval_mode,
                                      run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
