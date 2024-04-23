@@ -117,7 +117,7 @@ class PerforatedConv2d(nn.Module):
         self.recompute = True
         self.calculations = 0
         self.in_shape = None
-        self.do_offsets = False
+        self.do_offsets = True
 
     def set_perf(self, perf):
         self.perf_stride = perf
