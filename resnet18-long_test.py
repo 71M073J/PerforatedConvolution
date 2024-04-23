@@ -76,7 +76,7 @@ if __name__ == "__main__":
             op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
             # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
             #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
-            epochs = 2
+            epochs = 200
             lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
             #eval_mode=(2,2)
             with open(f"./resnet_perf_long_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}.txt", "w") as f:
