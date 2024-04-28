@@ -144,7 +144,7 @@ def compare_speed():
 
 
 def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
-          ep_losses, vary_perf, eval_mode, net, bs, run_name):
+          ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting):
     l = 0
     train_accs = []
     entropies = 0
@@ -250,17 +250,17 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
     # scheduler.step(l.item() / i)
     ep_losses.append(l.item() / (i + 1))
     losses.append(np.nan)
-    if file is not None:
-        print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1), file=file)
-        print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}", file=file)
-    print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
-    print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
-    print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
+    if reporting:
+        if file is not None:
+            print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1), file=file)
+            print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}", file=file)
+        print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
+        #print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
+        print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
 
 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
-         report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs):
-    test_accs = []
+         report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs, reporting, test_accs):
     train_mode = ""
     if hasattr(net, "perforation"):
         train_mode = net._get_perforation()
@@ -287,16 +287,16 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
                     print(
                         f"Loss: {loss.detach().cpu().item()}, batch acc:{acc.sum() / bs} progress: {int(((i + 1) / testitems) * 10000) / 100}%",
                         file=file)
-
                     print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
             test_losses.append(np.nan)
-            if report_class_accs:
-                print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
-            if file is not None:
-                print("Average Epoch Test Loss:", l2.item() / (i + 1), file=file)
-                print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}", file=file)
-            print("Average Epoch Test Loss:", l2.item() / (i + 1))
-            print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
+            if reporting:
+                if report_class_accs:
+                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
+                if file is not None:
+                    print("Average Epoch Test Loss:", l2.item() / (i + 1), file=file)
+                    print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}", file=file)
+                print("Average Epoch Test Loss:", l2.item() / (i + 1))
+                print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
             ep_test_losses.append(l2.item() / (i + 1))
 
     if hasattr(net, "perforation"):
@@ -306,7 +306,7 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=1, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
              file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
-             do_test=True, save_net=False):
+             do_test=True, save_net=False, reporting=True):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     if do_test and test_every_n > epochs:
@@ -332,6 +332,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     ep_losses = []
     test_losses = []
     ep_test_losses = []
+    best_acc = 0
     net.train()
     params = [1]
     n_conv = 0
@@ -343,17 +344,18 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     minacc = 1000
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
-              ep_losses, vary_perf, eval_mode, net, bs, run_name)
-
+              ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting)
 
         if do_test or plot_loss:
+            test_accs = []
             test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
-                 report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs)
+                 report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs, reporting, test_accs)
         if lr_scheduler is not None:
             lr_scheduler.step()
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss or validate:
             if (ep_test_losses[-1]) < minacc:
                 minacc = ep_test_losses[-1]
+                best_acc = np.mean(test_accs)
                 params.pop()
                 params.append(copy.deepcopy(net.state_dict()))
         net.train()
@@ -424,12 +426,13 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
         # plt.show()
         plt.clf()
+        return best_acc
 
 
 if __name__ == "__main__":
     # compare_speed()
     # quit()
-
+    print("TODOTODOTODO important! naredi verzijo kjer namesto da se gradient downscalea, se direktno preko konvolucije pošlje?")
     augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]

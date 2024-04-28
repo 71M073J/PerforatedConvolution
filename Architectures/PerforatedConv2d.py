@@ -117,7 +117,7 @@ class PerforatedConv2d(nn.Module):
         self.recompute = True
         self.calculations = 0
         self.in_shape = None
-        self.do_offsets = True
+        self.do_offsets = False
 
     def set_perf(self, perf):
         self.perf_stride = perf
@@ -198,7 +198,9 @@ class PerforatedConv2d(nn.Module):
 
 
 def test():
+    print("TODOTODOTODO important! naredi verzijo kjer namesto da se gradient downscalea, se direktno preko konvolucije pošlje?")
     print("tesst with differrent train/eval perforation combinations, also test with non-normalised backwards interpo kernel")
+    #done, except normalised vs not comparison
     print("TODO test if gradient magnitudes are caused by normalised kernel in backwards for interpolation gradient aggregating")
     print("test if it works with any forward padding")
     conv = PerforatedConv2d(2, 2, 1, padding="same")
