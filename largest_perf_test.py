@@ -1,5 +1,3 @@
-import os
-
 import torch
 import torch.nn as nn
 import random
@@ -58,26 +56,26 @@ if __name__ == "__main__":
             torchvision.datasets.CIFAR10(
                 root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
             num_workers=4)
+
+    net = torchvision.models.resnet18()
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
+    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
+    # op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
+    epochs = 200
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
     from Architectures.resnet import resnet18
-    perf = (2,2)
-    eval_mode = (2,2)
+    testnet = resnet18(num_classes=10, perforation_mode=(1,1))
+    testnet._set_perforation((2,2))
+    perf = eval_mode = [(1,1)]*15
     net = resnet18(num_classes=10, perforation_mode=perf)
-    accs = []
-    for weight_decay in [1e-4, 5e-3, 1e-3]:
-        for epochs in [150, 200, 250, 300]:
-            if os.file.exists(f"{weight_decay}_{epochs}.txt"):
-                continue
-            op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=weight_decay)
-            # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
-            #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
-            lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
-            #eval_mode=(2,2)
-            temp = (weight_decay, epochs, test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
-                         make_imgs=False, plot_loss=True, vary_perf=None, file=None, eval_mode=eval_mode,
-                         run_name=f"long_resnet18_perf_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
-                         lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True))
-            accs.append(temp)
-            with open(f"{weight_decay}_{epochs}.txt", "w") as ff:
-                print(temp, file=ff)
-    with open("./param_search_1.txt", "w") as f:
-        print(accs, file=f)
+    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
+    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
+    #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
+    epochs = 200
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
+    #eval_mode=(2,2)
+    with open(f"./resnet_perf_long_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}.txt", "w") as f:
+        test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
+                 make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=eval_mode,
+                 run_name=f"long_resnet18_perf_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+                 lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)

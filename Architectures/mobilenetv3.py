@@ -265,12 +265,19 @@ class MobileNetV3(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
+        self.in_size = in_size
+        self._reset()
 
-        #init the net for perf sizes (unneeded, but if you want to know the net parameters before first batch it is necessary)
+    def _reset(self):
         self.eval()
-        self(torch.zeros(in_size))
+        self(torch.zeros(self.in_size))
         self.train()
+        #init the net for perf sizes (unneeded, but if you want to know the net parameters before first batch it is necessary)
+
     def _set_perforation(self, perf):
+
+        if type(perf) == tuple:
+            perf = [perf] * len(self._get_n_calc())
         self.perforation = perf
 
         cnt = 0
@@ -309,6 +316,8 @@ class MobileNetV3(nn.Module):
                                 cc[0].perf_stride = perf[cnt]
                                 cc[0].recompute = True
                                 cnt += 1
+
+        self._reset()
 
     def _get_perforation(self):
         perfs = []

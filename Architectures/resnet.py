@@ -218,7 +218,7 @@ class ResNet(nn.Module):
                                        grad_conv=grad_conv)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
-
+        self.in_size = in_size
         for m in self.modules():
             if isinstance(m, PerforatedConv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
@@ -236,8 +236,10 @@ class ResNet(nn.Module):
                 elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
         #init the net for perf sizes (unneeded, but if you want to know the net parameters before first batch it is necessary)
+        self._reset()
+    def _reset(self):
         self.eval()
-        self(torch.zeros(in_size))
+        self(torch.zeros(self.in_size))
         self.train()
 
 
@@ -294,10 +296,12 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def _set_perforation(self, perf):
-
+        if type(perf) == tuple:
+            perf = [perf] * len(self._get_n_calc())
         self.perforation = perf
         cnt = 1
         self.conv1.perf_stride = perf[0]
+        self.conv1.recompute = True
         ls = [self.layer1, self.layer2, self.layer3, self.layer4]
         for l in ls:
             if type(l) == BasicBlock:
@@ -336,6 +340,7 @@ class ResNet(nn.Module):
                         ll.conv3.perf_stride = perf[cnt]
                         ll.conv3.recompute = True
                         cnt += 1
+        self._reset()
 
     def _get_perforation(self):
         perfs = [self.conv1.perf_stride]

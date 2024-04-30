@@ -160,18 +160,17 @@ class PerforatedConv2d(nn.Module):
             self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
             self.recompute = False
             # in_channels * out_channels * h * w * filter_size // stride1 // stride2
-            if self.calculations == 0:
-                self.calculations = ((self.conv.in_channels * self.conv.out_channels *
-                                      (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
-                                      (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
-                                      self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
-                                     self.conv.stride[0]) // self.conv.stride[1] // \
-                                    self.perf_stride[0] // self.perf_stride[1], \
-                    f"{self.conv.in_channels}x" \
-                    f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
-                    f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
-                    f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
-                    f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
+            self.calculations = ((self.conv.in_channels * self.conv.out_channels *
+                                  (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
+                                  (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
+                                  self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
+                                 self.conv.stride[0]) // self.conv.stride[1] // \
+                                self.perf_stride[0] // self.perf_stride[1], \
+                f"{self.conv.in_channels}x" \
+                f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
+                f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
+                f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
+                f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
 
         # raise FuckThisShitException("NEKAJ NE DELA IN NE VEM KAJ")
         if self.perf_stride != (1, 1):
