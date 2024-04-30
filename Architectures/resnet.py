@@ -239,7 +239,7 @@ class ResNet(nn.Module):
         self._reset()
     def _reset(self):
         self.eval()
-        self(torch.zeros(self.in_size))
+        self(torch.zeros(self.in_size, device=self.conv1.weight.device))
         self.train()
 
 
