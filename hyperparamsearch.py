@@ -65,7 +65,7 @@ if __name__ == "__main__":
     accs = []
     for weight_decay in [1e-4, 5e-3, 1e-3]:
         for epochs in [150, 200, 250, 300]:
-            if os.file.exists(f"{weight_decay}_{epochs}.txt"):
+            if os.path.exists(f"{weight_decay}_{epochs}.txt"):
                 continue
             op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=weight_decay)
             # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
