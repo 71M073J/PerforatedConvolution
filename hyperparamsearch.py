@@ -63,7 +63,7 @@ if __name__ == "__main__":
     eval_mode = (2,2)
     net = resnet18(num_classes=10, perforation_mode=perf)
     accs = []
-    for weight_decay in [1e-4, 5e-3, 1e-3]:
+    for weight_decay in [1e-4, 5e-4, 1e-3]:
         for epochs in [150, 200, 250, 300]:
             if os.path.exists(f"{weight_decay}_{epochs}.txt"):
                 continue

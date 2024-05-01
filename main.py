@@ -352,12 +352,11 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                  report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs, reporting, test_accs)
         if lr_scheduler is not None:
             lr_scheduler.step()
-        if (epoch % test_every_n == (test_every_n - 1)) or plot_loss or validate:
-            if (ep_test_losses[-1]) < minacc:
-                minacc = ep_test_losses[-1]
-                best_acc = np.mean(test_accs)
-                params.pop()
-                params.append(copy.deepcopy(net.state_dict()))
+        if (ep_test_losses[-1]) < minacc:
+            minacc = ep_test_losses[-1]
+            best_acc = np.mean(test_accs)
+            params.pop()
+            params.append(copy.deepcopy(net.state_dict()))
         net.train()
     if validate:
         net.load_state_dict(params[0])
