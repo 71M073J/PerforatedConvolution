@@ -243,7 +243,7 @@ class MobileNetV2(nn.Module):
                             # elif type(cc) ==
                             cnt += 1
 
-        self._reset()
+        
 
     def _get_perforation(self):
         perfs = []
