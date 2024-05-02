@@ -451,7 +451,7 @@ def compare_speed_net():
             root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
         num_workers=4)
     cnt = 0
-    for n in [resnet18, MobileNetV2, mobilenet_v3_small]:  # , mobilenet_v3_large, resnet152]:
+    for n in [MobileNetV2, mobilenet_v3_small, resnet18]:  # , mobilenet_v3_large, resnet152]:
         for perf in [(2, 2), (3, 3), (1, 1)]:  # , "largest"
             for grad in [True]:  # , False]:
                 net = n(num_classes=10, perforation_mode=perf, grad_conv=grad)
