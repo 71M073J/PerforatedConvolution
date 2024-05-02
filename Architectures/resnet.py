@@ -340,7 +340,7 @@ class ResNet(nn.Module):
                         ll.conv3.perf_stride = perf[cnt]
                         ll.conv3.recompute = True
                         cnt += 1
-        self._reset()
+        
 
     def _get_perforation(self):
         perfs = [self.conv1.perf_stride]
