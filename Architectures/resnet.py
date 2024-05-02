@@ -9,7 +9,7 @@ from torchvision.models._api import WeightsEnum
 from torchvision.models._utils import _ovewrite_named_param
 from .PerforatedConv2d import PerforatedConv2d
 from .conv2dNormActivation import Conv2dNormActivation
-
+import numpy as np
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1,
             perforation_mode: tuple = (1, 1), grad_conv: bool = True) -> PerforatedConv2d:
@@ -187,7 +187,7 @@ class ResNet(nn.Module):
         conv_in_block = (2 if block == BasicBlock else 3 if block == Bottleneck else -1)
         if type(self.perforation) == tuple:
             self.perforation = [self.perforation] * (((sum(layers) * (conv_in_block + 1)) + 1))
-        elif type(self.perforation) != list:
+        elif type(self.perforation) not in [list, np.ndarray]:
             raise NotImplementedError("Provide the perforation mode")
         if ((sum(layers) * (conv_in_block + 1)) + 1) != len(self.perforation):
             raise ValueError(

@@ -144,7 +144,7 @@ def compare_speed():
 
 
 def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
-          ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting):
+          ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting, vary_num):
     l = 0
     train_accs = []
     entropies = 0
@@ -159,7 +159,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         for i, (batch, classes) in enumerate(dataset):
 
             if vary_perf is not None:
-                raise NotImplementedError("TODO with tuples")
+                #raise NotImplementedError("TODO with tuples")
                 if vary_perf == "incremental":
                     randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
                     perfs = np.array([(3, 3)] * n_conv)
@@ -167,9 +167,9 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     perfs[np.max(randn):] = (1, 1)
                 elif vary_perf == "random":
                     rn = np.random.random(n_conv)
-                    perfs = np.array(["both"] * n_conv)
-                    perfs[rn > 0.66666] = np.array([(1, 1)] * len(perfs[rn > 0.66666]))
-                    perfs[rn < 0.33333] = np.array([(3, 3)] * len(perfs[rn < 0.33333]))
+                    perfs = np.array([(1,1)] * n_conv)
+                    for i in range(1, vary_num):
+                        perfs[rn > 1./vary_num] = np.array([(i+1, i+1)] * len(perfs[rn > 1./vary_num]))
                 net._set_perforation(perfs)
             batch = batch.to(device)
             t0 = time.time()
@@ -306,7 +306,7 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=1, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
              file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
-             do_test=True, save_net=False, reporting=True):
+             do_test=True, save_net=False, reporting=True, vary_num=2):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     bs = batch_size
     if do_test and test_every_n > epochs:
@@ -344,7 +344,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     minacc = 1000
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
-              ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting)
+              ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting, vary_num)
 
         if do_test or plot_loss:
             test_accs = []
