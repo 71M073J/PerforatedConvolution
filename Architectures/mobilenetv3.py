@@ -270,7 +270,7 @@ class MobileNetV3(nn.Module):
 
     def _reset(self):
         self.eval()
-        self(torch.zeros(self.in_size, device=self.conv1.weight.device))
+        self(torch.zeros(self.in_size, device=self.features[0].weight.device))
         self.train()
         #init the net for perf sizes (unneeded, but if you want to know the net parameters before first batch it is necessary)
 

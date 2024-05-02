@@ -428,10 +428,46 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         plt.clf()
         return best_acc
 
+def compare_speed_net():
+    augment = True
+    tf = [transforms.ToTensor(), ]
+    tf_test = [transforms.ToTensor(), ]
+    dataset1, dataset2, dataset3 = None, None, None
+    bs = 64
+    if augment:
+        tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
+                                            transforms.RandomResizedCrop(size=32)]),
+                   transforms.RandomHorizontalFlip()])
+    tf.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    tf_test.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    tf = transforms.Compose(tf)
+    tf_test = transforms.Compose(tf_test)
+    dataset1 = torch.utils.data.DataLoader(
+        torchvision.datasets.CIFAR10(
+            root='./data', train=True, download=True, transform=tf), batch_size=bs, shuffle=True, num_workers=4)
+
+    dataset2 = torch.utils.data.DataLoader(
+        torchvision.datasets.CIFAR10(
+            root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
+        num_workers=4)
+    cnt = 0
+    for n in [resnet18, MobileNetV2, mobilenet_v3_small]:  # , mobilenet_v3_large, resnet152]:
+        for perf in [(2, 2), (3, 3), (1, 1)]:  # , "largest"
+            for grad in [True]:  # , False]:
+                net = n(num_classes=10, perforation_mode=perf, grad_conv=grad)
+                cnt += 1
+                op = torch.optim.Adam(net.parameters(), weight_decay=0.001)
+                t = time.time()
+                test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
+                         make_imgs=False, plot_loss=False, vary_perf=None, file=None, eval_mode=(2,2),
+                         run_name=f"benchmarking{cnt}", dataset=dataset1, dataset2=dataset2, dataset3=None,
+                         validate=False, test_every_n=1, op=op, lr_scheduler=None)
+                print(f"net {n} {perf} took {time.time() - t} seconds.")
 
 if __name__ == "__main__":
     # compare_speed()
-    # quit()
+    compare_speed_net()
+    quit()
     print("TODOTODOTODO important! naredi verzijo kjer namesto da se gradient downscalea, se direktno preko konvolucije pošlje?")
     augment = True
     tf = [transforms.ToTensor(), ]
