@@ -160,6 +160,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
 
             if vary_perf is not None:
                 #raise NotImplementedError("TODO with tuples")
+                perfs = None
                 if vary_perf == "incremental":
                     randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
                     perfs = np.array([(3, 3)] * n_conv)
