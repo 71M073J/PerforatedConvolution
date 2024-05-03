@@ -169,7 +169,9 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     rn = np.random.random(n_conv)
                     perfs = np.array([(1,1)] * n_conv)
                     for i in range(1, vary_num):
-                        perfs[rn > 1./vary_num] = np.array([(i+1, i+1)] * len(perfs[rn > 1./vary_num]))
+                        pmask = rn > 1./vary_num
+                        if sum(pmask) != 0:
+                            perfs[pmask] = np.array([(i+1, i+1)] * len(perfs[pmask]))
                 net._set_perforation(perfs)
             batch = batch.to(device)
             t0 = time.time()
