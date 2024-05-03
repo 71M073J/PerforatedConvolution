@@ -355,6 +355,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 ep_test_losses = [ep_test_losses] * len(eval_mode)
                 params = [params] * len(eval_mode)
                 best_acc = [best_acc] * len(eval_mode)
+                minacc = [minacc] * len(eval_mode)
                 for ind, ev in enumerate(eval_mode):
 
                     print("testing eval mode", ev)
@@ -362,8 +363,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses[ind], verbose, file,
                          testitems, report_class_accs, ep_test_losses[ind], ev, net, dataset2, bs, reporting, test_accs[ind])
 
-                    if (ep_test_losses[ind][-1]) < minacc:
-                        minacc = ep_test_losses[ind][-1]
+                    if (ep_test_losses[ind][-1]) < minacc[ind]:
+                        minacc[ind] = ep_test_losses[ind][-1]
                         best_acc[ind] = np.mean(test_accs[ind])
                         params[ind].pop()
                         params[ind].append(copy.deepcopy(net.state_dict()))
