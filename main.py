@@ -422,17 +422,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
                 ep_test_losses,[test_losses[x*(len(test_losses)//epochs):(x+1)*(len(test_losses)//epochs - 1)].std()**0.5 for x in range(epochs)], capsize=3,
                 label="Test losses")
-            #axes[1].scatter(range(len(test_losses) + (len(test_losses) // epochs)),
-            #                ([np.nan] * (len(test_losses) // epochs)) + test_losses, label="test losses", alpha=0.1)
-            #axes[0].plot(
-            #    np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-            #    ep_test_losses, color="g", label="Avg Epoch Test loss")
-            #axes[1].set_xticks(np.arange(0, len(test_losses), (len(test_losses) // epochs)),
-            #                   np.arange(0, epochs + 1, 1), rotation=90)
-            #axes[1].set_xlabel("Epochs")
-            #axes[1].set_ylim(-0.15, 6)
-            #axes[1].legend()
-            #axes[1].grid()
+
 
         ax1.set_ylim(-0.15, 8)
         ax1.legend()
