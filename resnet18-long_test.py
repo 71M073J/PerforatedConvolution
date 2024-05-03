@@ -81,7 +81,9 @@ if __name__ == "__main__":
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
         #eval_mode=(2,2)
         with open(f"./resnet_randomperf_long_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}.txt", "w") as f:
-            test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
+            results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
                      make_imgs=False, plot_loss=True, vary_perf="random", file=f, eval_mode=eval_mode,
                      run_name=f"long_resnet18_randomperf_test{perf[0]}x{perf[1]}_out_eval{eval_mode[0]}x{eval_mode[1]}", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                      lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
+            with open("randomperf_test.txt", "w") as fff:
+                print(results, file=fff)
