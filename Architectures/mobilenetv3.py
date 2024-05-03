@@ -317,7 +317,7 @@ class MobileNetV3(nn.Module):
                                 cc[0].recompute = True
                                 cnt += 1
 
-        self._reset()
+        
 
     def _get_perforation(self):
         perfs = []
