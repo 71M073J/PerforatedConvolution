@@ -148,7 +148,6 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
     l = 0
     train_accs = []
     entropies = 0
-    accs = 0
     networkCallTime = 0
     class_accs = np.zeros((2, 15))
     weights = []
@@ -157,7 +156,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         if do_profiling:
             prof = stack.enter_context(torch.autograd.profiler.profile(profile_memory=True, use_cuda=True))
         for i, (batch, classes) in enumerate(dataset):
-
+            batchacc = 0
             if vary_perf is not None:
                 #raise NotImplementedError("TODO with tuples")
                 perfs = None
@@ -175,8 +174,8 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
             batch = batch.to(device)
             t0 = time.time()
             pred = net(batch)
-            acc = torch.sum(F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes) / bs
-            train_accs.append(acc)
+            acc = F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes
+            train_accs.append(torch.sum(acc) / bs)
             torch.cuda.synchronize()
             networkCallTime += time.time() - t0
             loss = loss_fn(pred, classes.to(device))
@@ -191,50 +190,35 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
             # entropy = Categorical(
             #    probs=torch.maximum(F.softmax(pred.detach().cpu(), dim=1), torch.tensor(1e-12)))  # F.softmax(pred.detach().cpu(), dim=1)
             # entropies += entropy.entropy().mean()
-            acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+            #acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
             for clas in classes[acc]:
                 class_accs[0, clas] += 1
             for clas in classes:
                 class_accs[1, clas] += 1
             l += loss.detach().cpu()
             losses.append(loss.detach().cpu())
-            accs += acc.sum()
+            op.step()
+            op.zero_grad()
+            if i % 100 == 0:
+                if verbose:
+                    print("mean entropies:", entropies / (i + 1), file=file)
+                    print(
+                        f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int(((i + 1) / items) * 10000) / 100}%, Batch",
+                        (i + 1), file=file)
+                    print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
+                    print(int((time.time() - t0) * 100) / 100, "Seconds elapsed for 1 batch forward.",
+                          "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds",
+                          file=file)
 
-            # if i % 256 == 0:
-            #    #with torch.no_grad():
-            #        plt.plot(net.relu7(torch.arange(-60, 60, 0.1).cuda()).detach().cpu())
-            #        plt.show()
+                if do_profiling:
+                    stack.close()
+                    print(prof.key_averages().table(row_limit=10), file=file)
+                    with open("all_nets_profiling.txt", "a") as f:
+                        print("network", run_name, ":", file=f)
+                        print(prof.key_averages().table(row_limit=10), file=f)
+                    return
 
-            if True:
-                # with torch.no_grad():
-                #    plt.plot(np.arange(-15, 15, 0.01), net.relu7(torch.arange(-15, 15, 0.01, dtype=torch.float, device=device)).detach().cpu())
-                #    plt.savefig(f"func{i}.png")
-                #    plt.clf()
-                op.step()
-                op.zero_grad()
-                # l /= (64 // bs)
-                # batchacc = accs / (bs * (64 // bs))
-                batchacc = accs / bs
-                if i % 100 == 0:
-                    if verbose:
-                        print("mean entropies:", entropies / (i + 1), file=file)
-                        print(
-                            f"Loss: {loss.detach().cpu()}, batch acc:{batchacc} progress: {int(((i + 1) / items) * 10000) / 100}%, Batch",
-                            (i + 1), file=file)
-                        print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
-                        print(int((time.time() - t0) * 100) / 100, "Seconds elapsed for 1 batch forward.",
-                              "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds",
-                              file=file)
-
-                    if do_profiling:
-                        stack.close()
-                        print(prof.key_averages().table(row_limit=10), file=file)
-                        with open("all_nets_profiling.txt", "a") as f:
-                            print("network", run_name, ":", file=f)
-                            print(prof.key_averages().table(row_limit=10), file=f)
-                        return
                 # l = 0
-                accs = 0
     if make_imgs:  # todo histogram of gradients
         y, x = torch.histogram(torch.stack(weights))
         x = ((x + x.roll(-1)) * 0.5)[:-1]
@@ -249,15 +233,15 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         # plt.show()
         plt.clf()
     # scheduler.step(l.item() / i)
-    ep_losses.append(l.item() / (i + 1))
-    losses.append(np.nan)
+    ep_losses.append(np.mean(losses).item())
+    #losses.append(np.nan)
     if reporting:
         if file is not None:
-            print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1), file=file)
-            print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}", file=file)
-        print(f"Average Epoch {epoch} Train Loss:", l.item() / (i + 1))
+            print(f"Average Epoch {epoch} Train Loss:", np.mean(losses).item(), file=file)
+            print(f"Epoch mean acc: {np.mean(train_accs).item()}", file=file)
+        print(f"Average Epoch {epoch} Train Loss:", np.mean(losses).item())
         #print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
-        print(f"Epoch mean acc: {sum(train_accs) / (i + 1)}")
+        print(f"Epoch mean acc: {np.mean(train_accs).item()}")
 
 
 def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
@@ -269,7 +253,10 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
         if (epoch % test_every_n == (test_every_n - 1)) or plot_loss:
             net.eval()
             if eval_mode is not None:
-                net._set_perforation([eval_mode] * n_conv)
+                if type(eval_mode) == tuple:
+                    net._set_perforation([eval_mode] * n_conv)
+                else:
+                    net._set_perforation(eval_mode)
             class_accs = np.zeros((2, 15))
             l2 = 0
             for i, (batch, classes) in enumerate(dataset2):
@@ -295,9 +282,9 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
                     print("Class accs:", class_accs[0] / (class_accs[1] + 1e-12), file=file)
                 if file is not None:
                     print("Average Epoch Test Loss:", l2.item() / (i + 1), file=file)
-                    print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}", file=file)
+                    print(f"Epoch mean acc: {np.mean(test_accs).item()}", file=file)
                 print("Average Epoch Test Loss:", l2.item() / (i + 1))
-                print(f"Epoch mean acc: {sum(test_accs) / (i + 1)}")
+                print(f"Epoch mean acc: {np.mean(test_accs).item()}")
             ep_test_losses.append(l2.item() / (i + 1))
 
     if hasattr(net, "perforation"):
@@ -347,17 +334,41 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
               ep_losses, vary_perf, eval_mode, net, bs, run_name, reporting, vary_num)
 
-        if do_test or plot_loss:
-            test_accs = []
-            test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
-                 report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs, reporting, test_accs)
-        if lr_scheduler is not None:
-            lr_scheduler.step()
-        if (ep_test_losses[-1]) < minacc:
-            minacc = ep_test_losses[-1]
-            best_acc = np.mean(test_accs)
-            params.pop()
-            params.append(copy.deepcopy(net.state_dict()))
+        if type(eval_mode) == tuple:
+            if do_test or plot_loss:
+                test_accs = []
+                test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, verbose, file, testitems,
+                     report_class_accs, ep_test_losses, eval_mode, net, dataset2, bs, reporting, test_accs)
+
+            if lr_scheduler is not None:
+                lr_scheduler.step()
+            if (ep_test_losses[-1]) < minacc:
+                minacc = ep_test_losses[-1]
+                best_acc = np.mean(test_accs)
+                params.pop()
+                params.append(copy.deepcopy(net.state_dict()))
+        elif type(eval_mode) == list:
+            if do_test or plot_loss:
+                test_accs = []
+                test_accs = [test_accs] * len(eval_mode)
+                test_losses = [test_losses] * len(eval_mode)
+                ep_test_losses = [ep_test_losses] * len(eval_mode)
+                params = [params] * len(eval_mode)
+                best_acc = [best_acc] * len(eval_mode)
+                for ind, ev in enumerate(eval_mode):
+
+                    print("testing eval mode", ev)
+                    print("testing eval mode", ev, file=file)
+                    test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses[ind], verbose, file,
+                         testitems, report_class_accs, ep_test_losses[ind], ev, net, dataset2, bs, reporting, test_accs[ind])
+
+                    if (ep_test_losses[ind][-1]) < minacc:
+                        minacc = ep_test_losses[ind][-1]
+                        best_acc[ind] = np.mean(test_accs[ind])
+                        params[ind].pop()
+                        params[ind].append(copy.deepcopy(net.state_dict()))
+                if lr_scheduler is not None:
+                    lr_scheduler.step()
         net.train()
     if validate:
         net.load_state_dict(params[0])
@@ -426,7 +437,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         plt.savefig(f"./timelines/loss_timeline_{run_name}.png")
         # plt.show()
         plt.clf()
-        return best_acc
+    return best_acc
 
 def compare_speed_net():
     augment = True
