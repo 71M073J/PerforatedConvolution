@@ -72,9 +72,8 @@ if __name__ == "__main__":
     from Architectures.resnet import resnet18
     for perf in [(2,2)]:
         #for eval_mode in [(1,1),(2,2),(3,3)]:
-        eval_mode = [(1,1),(2,2),(3,3)]
-        net = resnet18(num_classes=10, perforation_mode=[(i+1,i+1) for i in range(20)])
-        net._get_perforation()
+        eval_mode = [None, (1,1),(2,2),(3,3)]
+        net = resnet18(num_classes=10, perforation_mode=([[(1,1)]*9 + [(2,2)] + [(1,1)] * 10]))
         op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
         # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
         #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
@@ -82,10 +81,10 @@ if __name__ == "__main__":
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
         #eval_mode=(2,2)
         rs = 0
-        with open(f"./resnet_randomperf_alltest.txt", "w") as f:
-            results = test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
-                     make_imgs=False, plot_loss=False, vary_perf="random", file=f, eval_mode=eval_mode,
-                     run_name=f"resnet_randomperf_alltest_run", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+        with open(f"./resnet_lastperf.txt", "w") as f:
+            results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
+                     make_imgs=False, plot_loss=False, vary_perf=None, file=f, eval_mode=eval_mode,
+                     run_name=f"long_resnet18_lastperf", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                      lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
             rs = results
         with open("randomperf_test.txt", "a") as ffs:

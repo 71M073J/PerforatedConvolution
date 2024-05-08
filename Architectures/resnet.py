@@ -193,7 +193,7 @@ class ResNet(nn.Module):
             raise NotImplementedError("Provide the perforation mode")
         if n != len(self.perforation):
             raise ValueError(
-                f"The perforation list length should equal the number of conv layers ({n})")
+                f"The perforation list length should equal the number of conv layers ({n}), given was {len(self.perforation)}")
         self.conv1 = PerforatedConv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False,
                                       perforation_mode=self.perforation[0],
                                       grad_conv=grad_conv)
