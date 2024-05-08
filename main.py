@@ -553,7 +553,7 @@ if __name__ == "__main__":
                     perf = [(2, 2)] + [(1, 1)] * 61
                     extra += "-"
                 elif n == resnet18:
-                    perf = [(2, 2)] + [(1, 1)] * 24
+                    perf = [(2, 2)] + [(1, 1)] * 16
                     extra += "-"
                 elif n == resnet152:
                     extra += "-"

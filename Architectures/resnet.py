@@ -185,13 +185,15 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
 
         conv_in_block = (2 if block == BasicBlock else 3 if block == Bottleneck else -1)
+        h = 1 if (self.inplanes != 64 * block.expansion) else 0
+        n = sum(layers) * conv_in_block + 4 + h
         if type(self.perforation) == tuple:
-            self.perforation = [self.perforation] * (((sum(layers) * (conv_in_block + 1)) + 1))
+            self.perforation = [self.perforation] * n
         elif type(self.perforation) not in [list, np.ndarray]:
             raise NotImplementedError("Provide the perforation mode")
-        if ((sum(layers) * (conv_in_block + 1)) + 1) != len(self.perforation):
+        if n != len(self.perforation):
             raise ValueError(
-                f"The perforation list length should equal the number of conv layers ({(((sum(layers) * (conv_in_block + 1)) + 1))})")
+                f"The perforation list length should equal the number of conv layers ({n})")
         self.conv1 = PerforatedConv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False,
                                       perforation_mode=self.perforation[0],
                                       grad_conv=grad_conv)
@@ -199,22 +201,22 @@ class ResNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0],
-                                       perforation_mode=self.perforation[1:(layers[0] * conv_in_block) + 2],
+                                       perforation_mode=self.perforation[1:(layers[0] * conv_in_block) + 1 + h],
                                        grad_conv=grad_conv)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0],
-                                       perforation_mode=self.perforation[(layers[0] * conv_in_block) + 2:
-                                                                         (layers[1] + layers[0]) * conv_in_block + 3],
+                                       perforation_mode=self.perforation[(layers[0] * conv_in_block) + 1 + h:
+                                                                         (layers[1] + layers[0]) * conv_in_block + 2 + h],
                                        grad_conv=grad_conv)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1],
                                        perforation_mode=
-                                       self.perforation[(layers[1] + layers[0]) * conv_in_block + 3:
-                                                        (layers[2] + layers[1] + layers[0]) * conv_in_block + 4],
+                                       self.perforation[(layers[1] + layers[0]) * conv_in_block + 2 + h:
+                                                        (layers[2] + layers[1] + layers[0]) * conv_in_block + 3 + h],
                                        grad_conv=grad_conv)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2],
                                        perforation_mode=
-                                       self.perforation[(layers[2] + layers[1] + layers[0]) * conv_in_block + 4:
+                                       self.perforation[(layers[2] + layers[1] + layers[0]) * conv_in_block + 3 + h:
                                                         (layers[3] + layers[2] + layers[1] + layers[
-                                                            0]) * conv_in_block + 5],
+                                                            0]) * conv_in_block + 4 + h],
                                        grad_conv=grad_conv)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -256,11 +258,12 @@ class ResNet(nn.Module):
         downsample = None
         previous_dilation = self.dilation
         conv_in_block = (2 if block == BasicBlock else 3 if block == Bottleneck else -1)
+        downs = (1 if stride != 1 or self.inplanes != planes * block.expansion else 0)
         if type(self.perforation) == tuple:
-            perforation_mode = [perforation_mode] * (blocks * conv_in_block + 1)
-        if blocks * conv_in_block + 1 != len(perforation_mode):
+            perforation_mode = [perforation_mode] * (blocks * conv_in_block + downs)
+        if blocks * conv_in_block + downs != len(perforation_mode):
             raise ValueError(
-                f"The perforation list length should equal the number of conv layers ({blocks * conv_in_block + 1}), in _make_layer()")
+                f"The perforation list length should equal the number of conv layers ({blocks * conv_in_block + downs}), in _make_layer()")
         if dilate:
             self.dilation *= stride
             stride = 1
@@ -275,7 +278,7 @@ class ResNet(nn.Module):
         layers.append(
             block(
                 self.inplanes, planes, stride, downsample, self.groups, self.base_width, previous_dilation, norm_layer,
-                perforation_mode[1:conv_in_block + 1], grad_conv=grad_conv
+                perforation_mode[downs:downs + conv_in_block], grad_conv=grad_conv
             )
         )
         self.inplanes = planes * block.expansion
@@ -288,7 +291,7 @@ class ResNet(nn.Module):
                     base_width=self.base_width,
                     dilation=self.dilation,
                     norm_layer=norm_layer,
-                    perforation_mode=perforation_mode[1 + conv_in_block * i:1 + conv_in_block * (i + 1)],
+                    perforation_mode=perforation_mode[downs + conv_in_block * i:downs + conv_in_block * (i + 1)],
                     grad_conv=grad_conv
                 )
             )
@@ -311,6 +314,10 @@ class ResNet(nn.Module):
                 l.conv2.perf_stride = perf[cnt]
                 l.conv2.recompute = True
                 cnt += 1
+                if l.downsample is not None:
+                    l.downsample[0].perf_stride = perf[cnt]
+                    l.downsample[0].recompute = True
+                    cnt += 1
             elif type(l) == Bottleneck:
                 l.conv1.perf_stride = perf[cnt]
                 l.conv1.recompute = True
@@ -321,6 +328,10 @@ class ResNet(nn.Module):
                 l.conv3.perf_stride = perf[cnt]
                 l.conv3.recompute = True
                 cnt += 1
+                if l.downsample is not None:
+                    l.downsample[0].perf_stride = perf[cnt]
+                    l.downsample[0].recompute = True
+                    cnt += 1
             elif type(l) == Sequential:
                 for ll in l:
                     if type(ll) == BasicBlock:
@@ -330,6 +341,10 @@ class ResNet(nn.Module):
                         ll.conv2.perf_stride = perf[cnt]
                         ll.conv2.recompute = True
                         cnt += 1
+                        if ll.downsample is not None:
+                            ll.downsample[0].perf_stride = perf[cnt]
+                            ll.downsample[0].recompute = True
+                            cnt += 1
                     elif type(ll) == Bottleneck:
                         ll.conv1.perf_stride = perf[cnt]
                         ll.conv1.recompute = True
@@ -340,6 +355,10 @@ class ResNet(nn.Module):
                         ll.conv3.perf_stride = perf[cnt]
                         ll.conv3.recompute = True
                         cnt += 1
+                        if ll.downsample is not None:
+                            ll.downsample[0].perf_stride = perf[cnt]
+                            ll.downsample[0].recompute = True
+                            cnt += 1
         
 
     def _get_perforation(self):
@@ -349,19 +368,27 @@ class ResNet(nn.Module):
             if type(l) == BasicBlock:
                 perfs.append(l.conv1.perf_stride)
                 perfs.append(l.conv2.perf_stride)
+                if l.downsample is not None:
+                    perfs.append(l.downsample[0].perf_stride)
             elif type(l) == Bottleneck:
                 perfs.append(l.conv1.perf_stride)
                 perfs.append(l.conv2.perf_stride)
                 perfs.append(l.conv3.perf_stride)
+                if l.downsample is not None:
+                    perfs.append(l.downsample[0].perf_stride)
             elif type(l) == Sequential:
                 for ll in l:
                     if type(ll) == BasicBlock:
                         perfs.append(ll.conv1.perf_stride)
                         perfs.append(ll.conv2.perf_stride)
+                        if ll.downsample is not None:
+                            perfs.append(ll.downsample[0].perf_stride)
                     elif type(ll) == Bottleneck:
                         perfs.append(ll.conv1.perf_stride)
                         perfs.append(ll.conv2.perf_stride)
                         perfs.append(ll.conv3.perf_stride)
+                        if ll.downsample is not None:
+                            perfs.append(ll.downsample[0].perf_stride)
         self.perforation = perfs
         return perfs
     def _get_n_calc(self):
@@ -371,19 +398,27 @@ class ResNet(nn.Module):
             if type(l) == BasicBlock:
                 perfs.append(l.conv1.calculations)
                 perfs.append(l.conv2.calculations)
+                if l.downsample is not None:
+                    perfs.append(l.downsample[0].calculations)
             elif type(l) == Bottleneck:
                 perfs.append(l.conv1.calculations)
                 perfs.append(l.conv2.calculations)
                 perfs.append(l.conv3.calculations)
+                if l.downsample is not None:
+                    perfs.append(l.downsample[0].calculations)
             elif type(l) == Sequential:
                 for ll in l:
                     if type(ll) == BasicBlock:
                         perfs.append(ll.conv1.calculations)
                         perfs.append(ll.conv2.calculations)
+                        if ll.downsample is not None:
+                            perfs.append(ll.downsample[0].calculations)
                     elif type(ll) == Bottleneck:
                         perfs.append(ll.conv1.calculations)
                         perfs.append(ll.conv2.calculations)
                         perfs.append(ll.conv3.calculations)
+                        if ll.downsample is not None:
+                            perfs.append(ll.downsample[0].calculations)
         return perfs
 
     def _forward_impl(self, x: Tensor) -> Tensor:
