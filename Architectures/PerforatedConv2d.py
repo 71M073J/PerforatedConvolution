@@ -18,10 +18,15 @@ class _InterpolateCustom(autograd.Function):
     @staticmethod
     def forward(ctx, f_input, params):
         shape, ctx.grad_conv, ctx.offset, ctx.perf_stride, ctx.padding, ctx.forward_pad = params
+        #shape, ctx.grad_conv, ctx.offset, ctx.perf_stride, ctx.padding, ctx.forward_pad, ctx.filter = params
         ctx.orig_shape = tuple(f_input.shape[-2:])
         with torch.no_grad():
             return interpolate_keep_values_deconv2(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
-                                                   duplicate=True, manual_offset=ctx.offset, padding=ctx.padding)
+                                                   duplicate=True, manual_offset=ctx.offset, padding=ctx.padding,
+                                                   #filter=ctx.filter
+                   )
+
+
 
             #    return interpolate_keep_values_deconv(f_input, (shape[-2], shape[-1]), stride=ctx.perf_stride,
             #                                          duplicate=False)
@@ -42,6 +47,7 @@ class _InterpolateCustom(autograd.Function):
                     grad_output.view(grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],
                                      grad_output.shape[3]),
                     # bilinear interpolation, but inverse
+                    #ctx.filter,
                     get_lin_kernel(ctx.perf_stride, normalised=False, device=grad_output.device),
                     padding=(x, y),  # (ctx.perf_stride[0] - 1 + ctx.offset[0], ctx.perf_stride[1] - 1 + ctx.offset[1]),
                     stride=ctx.perf_stride).view(
@@ -60,6 +66,8 @@ class InterpolateFromPerforate(nn.Module):
 
     def forward(self, x, out_shape, grad_conv, offset, perf_stride, padding, forward_pad):
         return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride, padding, forward_pad))
+    #def forward(self, x, out_shape, grad_conv, offset, perf_stride, padding, forward_pad):#, filter):
+    #    return _InterpolateCustom.apply(x, (out_shape, grad_conv, offset, perf_stride, padding, forward_pad))#, filter))
 
 
 
@@ -118,6 +126,8 @@ class PerforatedConv2d(nn.Module):
         self.calculations = 0
         self.in_shape = None
         self.do_offsets = False
+        self.hard_limit = (self.conv.kernel_size[0] == 1 and self.conv.kernel_size[1] == 1)
+        #self.filter = None
 
     def set_perf(self, perf):
         self.perf_stride = perf
@@ -128,50 +138,54 @@ class PerforatedConv2d(nn.Module):
         if x.shape[-2:] != self.in_shape:
             self.in_shape = x.shape[-2:]
             self.recompute = True
-        if self.recompute:
-            tmp = 0
-            self.out_x = int(
-                (x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 * self.conv.padding[
-                    0] - 1) // self.conv.stride[0] + 1)
-            tmp_stride1 = self.perf_stride[0] + 1
-            while tmp <= 1:
-                tmp_stride1 -= 1
-                if tmp_stride1 == 0:
-                    tmp_stride1 = 1
-                    break
-                tmp = int((x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 *
-                           self.conv.padding[0] - 1) // (self.conv.stride[0] * tmp_stride1) + 1)
+        if not self.hard_limit:
+            if self.recompute:
+                tmp = 0
+                self.out_x = int(
+                    (x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 * self.conv.padding[
+                        0] - 1) // self.conv.stride[0] + 1)
+                tmp_stride1 = self.perf_stride[0] + 1
+                while tmp <= 1:
+                    tmp_stride1 -= 1
+                    if tmp_stride1 == 0:
+                        tmp_stride1 = 1
+                        break
+                    tmp = int((x.shape[-2] - ((self.conv.kernel_size[0] - 1) * self.conv.dilation[0]) + 2 *
+                               self.conv.padding[0] - 1) // (self.conv.stride[0] * tmp_stride1) + 1)
 
-            tmp = 0
-            self.out_y = int(
-                (x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 * self.conv.padding[
-                    1] - 1) // self.conv.stride[1] + 1)
-            tmp_stride2 = self.perf_stride[1] + 1
-            while tmp <= 1:
-                tmp_stride2 -= 1
-                if tmp_stride2 == 0:
-                    tmp_stride2 = 1
-                    break
-                tmp = int((x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 *
-                           self.conv.padding[1] - 1) // (self.conv.stride[1] * tmp_stride2) + 1)
-            self.perf_stride = (tmp_stride1, tmp_stride2)
+                tmp = 0
+                self.out_y = int(
+                    (x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 * self.conv.padding[
+                        1] - 1) // self.conv.stride[1] + 1)
+                tmp_stride2 = self.perf_stride[1] + 1
+                while tmp <= 1:
+                    tmp_stride2 -= 1
+                    if tmp_stride2 == 0:
+                        tmp_stride2 = 1
+                        break
+                    tmp = int((x.shape[-1] - ((self.conv.kernel_size[1] - 1) * self.conv.dilation[1]) + 2 *
+                               self.conv.padding[1] - 1) // (self.conv.stride[1] * tmp_stride2) + 1)
+                self.perf_stride = (tmp_stride1, tmp_stride2)
 
-            self.mod1 = ((self.out_x - 1) % self.perf_stride[0]) + 1
-            self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
-            self.recompute = False
-            # in_channels * out_channels * h * w * filter_size // stride1 // stride2
-            self.calculations = ((self.conv.in_channels * self.conv.out_channels *
-                                  (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
-                                  (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
-                                  self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
-                                 self.conv.stride[0]) // self.conv.stride[1] // \
-                                self.perf_stride[0] // self.perf_stride[1], \
-                f"{self.conv.in_channels}x" \
-                f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
-                f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
-                f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
-                f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
+                self.mod1 = ((self.out_x - 1) % self.perf_stride[0]) + 1
+                self.mod2 = ((self.out_y - 1) % self.perf_stride[1]) + 1
+                self.recompute = False
+                # in_channels * out_channels * h * w * filter_size // stride1 // stride2
+                self.calculations = ((self.conv.in_channels * self.conv.out_channels *
+                                      (x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2) *
+                                      (x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2) *
+                                      self.conv.kernel_size[0] * self.conv.kernel_size[1]) //
+                                     self.conv.stride[0]) // self.conv.stride[1] // \
+                                    self.perf_stride[0] // self.perf_stride[1], \
+                    f"{self.conv.in_channels}x" \
+                    f"{(x.shape[-2] - self.conv.kernel_size[0] // 2 * 2 + self.conv.padding[0] * 2)}x" \
+                    f"{(x.shape[-1] - self.conv.kernel_size[1] // 2 * 2 + self.conv.padding[1] * 2)}x" \
+                    f"{self.conv.out_channels}x{self.conv.kernel_size[0]}x{self.conv.kernel_size[1]}//" \
+                    f"{self.conv.stride[0]}//{self.conv.stride[1]}//{self.perf_stride[0]}//{self.perf_stride[1]}"
 
+                #self.filter = get_lin_kernel(self.perf_stride, normalised=False, device=x.device, dtype=x.dtype)
+        else:
+            self.perf_stride = (1,1)
         # raise FuckThisShitException("NEKAJ NE DELA IN NE VEM KAJ")
         if self.perf_stride != (1, 1):
             # raise FuckThisShitException("padding je narobe za stride > 2")
@@ -183,7 +197,7 @@ class PerforatedConv2d(nn.Module):
                          forward_pad, self.conv.dilation, self.conv.groups)
             # TODO FIX THIS (padding for offset start
             x = self.inter(x, (self.out_x, self.out_y), self.grad_conv, (self.n1, self.n2), self.perf_stride,
-                           padding, x.shape[-2:])
+                           padding, x.shape[-2:])#, self.filter)
 
             if self.do_offsets:
                 self.n1 = (self.n1 + 1) % self.mod1

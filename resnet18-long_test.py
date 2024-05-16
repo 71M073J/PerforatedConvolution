@@ -70,6 +70,7 @@ if __name__ == "__main__":
                      run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                      lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
     from Architectures.resnet import resnet18
+    from Architectures.mobilenetv3 import mobilenet_v3_small
     for perf in [(2,2)]:
         #for eval_mode in [(1,1),(2,2),(3,3)]:
         eval_mode = [None, (1,1),(2,2),(3,3)]
@@ -89,3 +90,7 @@ if __name__ == "__main__":
             rs = results
         with open("randomperf_test.txt", "a") as ffs:
             print(rs, file=ffs)
+
+
+
+

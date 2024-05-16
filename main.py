@@ -1,6 +1,8 @@
 import os.path
 import time
 import copy
+from typing import Union
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -74,25 +76,25 @@ def col(batch):
 
 def compare_speed():
     device = "cuda:0"
+    # device = "cpu"
     timing = "forward"
     # device = "cpu"
     in_channels = 64
     backwards = True
-    for kern in [5]:
+    for kern in [1, 3, 5]:
         for in_channels in [2, 64, 256]:
             # l1 = nn.Conv2d(in_channels, in_channels * 2, 5).to(device)
-            l1 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(3, 3), kind=True).to(device)
-            l2 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(4, 4), kind=True).to(device)
-            l3 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(5, 5), kind=True).to(device)
-            # l3 = PerforatedConv2d(in_channels, in_channels * 2, 5, perforation_mode=(1,1)).to(device)
-            l4 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(6, 6), kind=True).to(device)
-            l5 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(7, 7), kind=True).to(device)
+            l1 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(1, 1)).to(device)
+            l2 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(2, 2)).to(device)
+            l3 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(3, 3)).to(device)
+            l4 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(4, 4)).to(device)
+            l5 = PerforatedConv2d(in_channels, in_channels * 2, kern, perforation_mode=(5, 5)).to(device)
             ls = [l1, l2, l3, l4, l5]
             os = [torch.optim.SGD(l.parameters(), lr=.001) for l in ls]
             total_times = [0, 0, 0, 0, 0]
             times = [[], [], [], [], []]
             # with torch.no_grad():
-            iters = 100
+            iters = 10
             t0 = 0
             for i in range(iters):
                 input_vec = torch.randn(size=(4096 // in_channels, in_channels, 64, 64), requires_grad=True).to(device)
@@ -127,18 +129,17 @@ def compare_speed():
 
             print(f"Normal convLayer: average of {total_times[0] / len(times[0])} seconds")
             for i in range(len(ls)):
-                print(ls[i].kind)
                 print(
                     f"Perforated convLayer: {ls[i].perf_stride}: average of {total_times[i] / len(times[i])} seconds")
             for i in range(len(ls)):
                 plt.plot(times[i],
-                         label=f"PerfConv {ls[i].perf_stride} {'conv interp:' + str(ls[i].kind) if ls[i].perf_stride != (1, 1) else ''}, {int(1000 * (total_times[i] / len(times[i]) * 1000)) / 1000}ms avg")
+                         label=f"PerfConv {ls[i].perf_stride}, {int(1000 * (total_times[i] / len(times[i]) * 1000)) / 1000}ms avg")
             plt.legend()
             plt.ylabel("Time elapsed (s)")
             if backwards:
-                plt.savefig(f"_kern{kern}_in_channels_{in_channels}_with_backward.png")
+                plt.savefig(f"{device[:4]}_kern{kern}_in_channels_{in_channels}_with_backward.png")
             else:
-                plt.savefig(f"in_channels_{in_channels}.png")
+                plt.savefig(f"{device[:4]}_in_channels_{in_channels}.png")
             plt.show()
             plt.clf()
 
@@ -158,7 +159,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         for i, (batch, classes) in enumerate(dataset):
             batchacc = 0
             if vary_perf is not None:
-                #raise NotImplementedError("TODO with tuples")
+                # raise NotImplementedError("TODO with tuples")
                 perfs = None
                 if vary_perf == "incremental":
                     randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
@@ -167,11 +168,11 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     perfs[np.max(randn):] = (1, 1)
                 elif vary_perf == "random":
                     rn = np.random.random(n_conv)
-                    perfs = np.array([(1,1)] * n_conv)
+                    perfs = np.array([(1, 1)] * n_conv)
                     for i in range(1, vary_num):
-                        pmask = rn > 1./vary_num
+                        pmask = rn > 1. / vary_num
                         if sum(pmask) != 0:
-                            perfs[pmask] = np.array([(i+1, i+1)] * len(perfs[pmask]))
+                            perfs[pmask] = np.array([(i + 1, i + 1)] * len(perfs[pmask]))
                 net._set_perforation(perfs)
             batch = batch.to(device)
             t0 = time.time()
@@ -192,7 +193,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
             # entropy = Categorical(
             #    probs=torch.maximum(F.softmax(pred.detach().cpu(), dim=1), torch.tensor(1e-12)))  # F.softmax(pred.detach().cpu(), dim=1)
             # entropies += entropy.entropy().mean()
-            #acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
+            # acc = (F.softmax(pred.detach().cpu(), dim=1).argmax(dim=1) == classes)
             for clas in classes[acc]:
                 class_accs[0, clas] += 1
             for clas in classes:
@@ -236,13 +237,13 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
         plt.clf()
     # scheduler.step(l.item() / i)
     ep_losses.append(np.mean(losses).item())
-    #losses.append(np.nan)
+    # losses.append(np.nan)
     if reporting:
         if file is not None:
             print(f"Average Epoch {epoch} Train Loss:", np.mean(losses).item(), file=file)
             print(f"Epoch mean acc: {np.mean(train_accs).item()}", file=file)
         print(f"Average Epoch {epoch} Train Loss:", np.mean(losses).item())
-        #print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
+        # print("mean entropies:", entropies / (i + 1), file=file, end=" - ")
         print(f"Epoch mean acc: {np.mean(train_accs).item()}")
 
 
@@ -295,10 +296,14 @@ def test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses, v
 
 def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run_name="", do_profiling=False,
              make_imgs=False, test_every_n=1, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
-             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=True,
-             do_test=True, save_net=False, reporting=True, vary_num=2):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+             file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=None,
+             do_test=True, save_net=False, reporting=True, vary_num=2, device: Union[str, torch.device] = "cpu"):
     bs = batch_size
+    if validate is None:
+        if dataset3 is None:
+            validate = False
+        else:
+            validate = True
     if do_test and test_every_n > epochs:
         do_test = False
     if op is None:
@@ -328,9 +333,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     n_conv = 0
     if hasattr(net, 'perforation'):
         n_conv = len(net.perforation)
-    p = 0
-    if eval_mode is not None:
-        p = net._get_perforation()
+    p = net._get_perforation()
     minacc = 1000
     for epoch in range(n_epochs):
         train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, op, verbose, file, items, epoch,
@@ -364,7 +367,8 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                     print("testing eval mode", ev)
                     print("testing eval mode", ev, file=file)
                     test(epoch, test_every_n, plot_loss, n_conv, device, loss_fn, test_losses[ind], verbose, file,
-                         testitems, report_class_accs, ep_test_losses[ind], ev, net, dataset2, bs, reporting, test_accs[ind])
+                         testitems, report_class_accs, ep_test_losses[ind], ev, net, dataset2, bs, reporting,
+                         test_accs[ind])
 
                     if (ep_test_losses[ind][-1]) < minacc[ind]:
                         minacc[ind] = ep_test_losses[ind][-1]
@@ -403,7 +407,7 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
     if save_net:
         torch.save(params, f"{run_name}_model.pth")
     if plot_loss:
-        #test_losses.append(np.nan)
+        # test_losses.append(np.nan)
         fig, axes = plt.subplots(1, 2 if do_test else 1, sharey=True,
                                  figsize=(int(np.maximum(epochs, 15)), int(np.maximum(epochs // 1.5, 10))))
         ax1 = axes[0] if do_test else axes
@@ -420,9 +424,10 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
             test_losses = np.array(test_losses)
             axes[0].errorbar(
                 np.arange((len(losses) // epochs), len(losses) + (len(losses) // epochs), (len(losses) // epochs)),
-                ep_test_losses,[test_losses[x*(len(test_losses)//epochs):(x+1)*(len(test_losses)//epochs - 1)].std()**0.5 for x in range(epochs)], capsize=3,
+                ep_test_losses,
+                [test_losses[x * (len(test_losses) // epochs):(x + 1) * (len(test_losses) // epochs - 1)].std() ** 0.5
+                 for x in range(epochs)], capsize=3,
                 label="Test losses")
-
 
         ax1.set_ylim(-0.15, 8)
         ax1.legend()
@@ -433,7 +438,10 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
         plt.clf()
     return best_acc
 
+
 def compare_speed_net():
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]
@@ -464,16 +472,13 @@ def compare_speed_net():
                 op = torch.optim.Adam(net.parameters(), weight_decay=0.001)
                 t = time.time()
                 test_net(net, batch_size=bs, epochs=1, do_profiling=False, summarise=False, verbose=False,
-                         make_imgs=False, plot_loss=False, vary_perf=None, file=None, eval_mode=(2,2),
+                         make_imgs=False, plot_loss=False, vary_perf=None, file=None, eval_mode=(2, 2),
                          run_name=f"benchmarking{cnt}", dataset=dataset1, dataset2=dataset2, dataset3=None,
-                         validate=False, test_every_n=1, op=op, lr_scheduler=None)
+                         validate=False, test_every_n=1, op=op, lr_scheduler=None, device=device)
                 print(f"net {n} {perf} took {time.time() - t} seconds.")
 
-if __name__ == "__main__":
-    # compare_speed()
-    compare_speed_net()
-    quit()
-    print("TODOTODOTODO important! naredi verzijo kjer namesto da se gradient downscalea, se direktno preko konvolucije pošlje?")
+
+def do_profiling():
     augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]
@@ -481,6 +486,65 @@ if __name__ == "__main__":
     dataset1, dataset2, dataset3 = None, None, None
     g = None
     bs = 128
+    if data == "cinic":
+        tf.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
+                                       [0.24205776, 0.23828046, 0.25874835]))
+        tf_test.append(transforms.Normalize([0.47889522, 0.47227842, 0.43047404],
+                                            [0.24205776, 0.23828046, 0.25874835]))
+        tf = transforms.Compose(tf)
+        tf_test = transforms.Compose(tf_test)
+        dataset1 = DataLoader(CINIC10(partition="train", download=True, transform=tf),  # collate_fn=col,
+                              num_workers=4, batch_size=bs, shuffle=False,
+                              generator=g)
+        dataset2 = DataLoader(
+            CINIC10(partition="valid", download=True, transform=tf_test), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=False,
+            generator=g, )
+        dataset3 = DataLoader(
+            CINIC10(partition="test", download=True, transform=tf_test), num_workers=4,  # collate_fn=col,
+            batch_size=bs, shuffle=False,
+            generator=g, )
+    elif data == "cifar":
+        tf.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+        tf_test.extend([transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+        tf = transforms.Compose(tf)
+        tf_test = transforms.Compose(tf_test)
+        dataset1 = torch.utils.data.DataLoader(
+            torchvision.datasets.CIFAR10(
+                root='./data', train=True, download=True, transform=tf), batch_size=bs, shuffle=False, num_workers=4)
+
+        dataset2 = torch.utils.data.DataLoader(
+            torchvision.datasets.CIFAR10(
+                root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
+            num_workers=4)
+    for device in ["cpu", "cuda:0"]:
+        for perf in [(2,2), (1,1)]:
+            with open("./all_nets_profiling.txt", "a") as ggsdf:
+                for i in range(10):
+                    print("-"*50, "\n", "-", device, " and ",perf, file=ggsdf)
+            net = resnet18(num_classes=10, perforation_mode=perf)
+            test_net(net, do_profiling=True, epochs=4, dataset=dataset1, dataset2=dataset2, device=device)
+
+
+
+if __name__ == "__main__":
+    do_profiling()
+    quit()
+    # compare_speed()
+    # quit()
+    # compare_speed_net()
+    # quit()
+    print(
+        "TODOTODOTODO important! naredi verzijo kjer namesto da se gradient downscalea, se direktno preko konvolucije pošlje?")
+    augment = True
+    tf = [transforms.ToTensor(), ]
+    tf_test = [transforms.ToTensor(), ]
+    data = "cifar"
+    dataset1, dataset2, dataset3 = None, None, None
+    g = None
+    bs = 128
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if augment:
         tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
                                             transforms.RandomResizedCrop(size=32)]),
@@ -553,7 +617,7 @@ if __name__ == "__main__":
                     perf = [(2, 2)] + [(1, 1)] * 61
                     extra += "-"
                 elif n == resnet18:
-                    perf = [(2, 2)] + [(1, 1)] * 16
+                    perf = [(2, 2)] + [(1, 1)] * 19
                     extra += "-"
                 elif n == resnet152:
                     extra += "-"
@@ -604,7 +668,8 @@ if __name__ == "__main__":
                                      make_imgs=make_imgs, plot_loss=plot_loss, vary_perf=vary_perf, file=f,
                                      eval_mode=eval_mode,
                                      run_name=run_name, dataset=dataset1, dataset2=dataset2, dataset3=dataset3,
-                                     validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler)
+                                     validate=validate, test_every_n=test_every_n, op=op, lr_scheduler=lr_scheduler,
+                                     device=device)
                             duration = time.time() - t
                             print(f"{run_name}\n{duration} seconds Elapsed", file=f)
                             print(f"{run_name}\n{duration} seconds Elapsed")
