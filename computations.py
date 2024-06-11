@@ -18,5 +18,8 @@ for i, k in enumerate(ks):
     axes[i].plot(x3, label=f"3x3 perf conv, kernel={k}, N_ops: {int((x3[-1]/norm[-1]) * 1000)/1000}")
     axes[i].legend()
 axes[0].set_ylabel("N_ops")
+axes[0].set_xlabel("Input size")
+axes[1].set_xlabel("Input size")
+axes[2].set_xlabel("Input size")
 plt.savefig("./efficiency_curves.png")
 plt.show()

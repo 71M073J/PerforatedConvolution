@@ -528,8 +528,8 @@ def do_profiling():
 
 
 if __name__ == "__main__":
-    do_profiling()
-    quit()
+    #do_profiling()
+    #quit()
     # compare_speed()
     # quit()
     # compare_speed_net()
