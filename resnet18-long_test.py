@@ -69,7 +69,7 @@ if __name__ == "__main__":
                 perf = (1,1)
                 vary_perf=perf
             eval_mode = [None, (1,1),(2,2),(3,3)]
-            net = arch(num_classes=10, perforation_mode=perf)
+            net = arch(num_classes=10, perforation_mode=perf, grad_conv=True)
             op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
             # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
             #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
