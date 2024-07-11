@@ -162,17 +162,40 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                 # raise NotImplementedError("TODO with tuples")
                 perfs = None
                 if vary_perf == "incremental":
+                    raise NotImplementedError()
                     randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
                     perfs = np.array([(3, 3)] * n_conv)
                     perfs[np.min(randn):np.max(randn)] = np.array(["both"] * (np.max(randn) - np.min(randn)))
                     perfs[np.max(randn):] = (1, 1)
-                elif vary_perf == "random":
-                    rn = np.random.random(n_conv)
-                    perfs = np.array([(1, 1)] * n_conv)
-                    for i in range(1, vary_num):
-                        pmask = rn > 1. / vary_num
-                        if sum(pmask) != 0:
-                            perfs[pmask] = np.array([(i + 1, i + 1)] * len(perfs[pmask]))
+                elif vary_perf == "random":#avg_proc 0.37 of non-perf
+                    #rn = np.random.random(n_conv)
+                    #perfs = np.array([(1, 1)] * n_conv)
+                    perfs = np.random.randint(1, vary_num+1, (n_conv,2))
+                    #for i in range(1, vary_num):
+                    #    pmask = rn > 1. / vary_num
+                    #    if sum(pmask) != 0:
+                    #        perfs[pmask] = np.array([(i + 1, i + 1)] * len(perfs[pmask]))
+                elif vary_perf == "2by2_equivalent":
+                    perfs = np.ones((n_conv, 2))
+                    rns = np.random.random(n_conv)
+                    for i in range(n_conv):
+                        rn = rns[i]
+                        if rn < 0.42352941:
+                            perfs[i] = 3,3
+                        elif rn < 0.52941176:
+                            perfs[i] = 2,3
+                        elif rn < 0.63529412:
+                            perfs[i] = 3,2
+                        elif rn < 0.74117647:
+                            perfs[i] = 2,2
+                        elif rn < 0.81176471:
+                            perfs[i] = 1,2
+                        elif rn < 0.88235294:
+                            perfs[i] = 2,1
+                        else:
+                            perfs[i] = 1,1
+                else:
+                    raise ValueError("Only supported vary modes are random and 2by2_equivalent")
                 net._set_perforation(perfs)
             batch = batch.to(device)
             t0 = time.time()
@@ -298,6 +321,11 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
              make_imgs=False, test_every_n=1, plot_loss=False, report_class_accs=False, vary_perf=None, eval_mode=None,
              file=None, dataset=None, dataset2=None, dataset3=None, op=None, lr_scheduler=None, validate=None,
              do_test=True, save_net=False, reporting=True, vary_num=2, device: Union[str, torch.device] = "cpu"):
+    if vary_perf is not None:
+        try:
+            vary_num = net.perforation[0][0]
+        except:
+            raise ValueError("net perf incompatible with vary num")
     bs = batch_size
     if validate is None:
         if dataset3 is None:
