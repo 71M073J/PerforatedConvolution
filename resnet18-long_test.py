@@ -57,39 +57,37 @@ if __name__ == "__main__":
                 root='./data', train=False, download=True, transform=tf_test), batch_size=bs, shuffle=False,
             num_workers=4)
 
-    net = torchvision.models.resnet18()
-    op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
-    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
-    # op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
-    epochs = 200
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
-    if False:
-        with open("./resnet_long_test_out.txt", "w") as f:
-            test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
-                     make_imgs=False, plot_loss=True, vary_perf=None, file=f, eval_mode=None,
-                     run_name="long_resnet18_test", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
-                     lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
+
     from Architectures.resnet import resnet18
     from Architectures.mobilenetv3 import mobilenet_v3_small
-    for perf in [(2,2)]:
-        #for eval_mode in [(1,1),(2,2),(3,3)]:
-        eval_mode = [None, (1,1),(2,2),(3,3)]
-        net = resnet18(num_classes=10, perforation_mode=([(1,1)]*9 + [(2,2)] + [(1,1)] * 10))
-        op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
-        # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
-        #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
-        epochs = 200
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
-        #eval_mode=(2,2)
-        rs = 0
-        with open(f"./resnet_lastperf.txt", "w") as f:
-            results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
-                     make_imgs=False, plot_loss=False, vary_perf=None, file=f, eval_mode=eval_mode,
-                     run_name=f"long_resnet18_lastperf", dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
-                     lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
-            rs = results
-        with open("randomperf_test.txt", "a") as ffs:
-            print(rs, file=ffs)
+    #from Architectures.mobilenetv3 import mobilenet_v3_large
+    from Architectures.mobilenetv2 import mobilenet_v2
+    for arch, name in [(resnet18, "resnet"), (mobilenet_v3_small, "mobnetv3"), (mobilenet_v2, "mobnetv2")]:
+        for perf in [(1,1),(2,2),(3,3),"random", "2by2_equivalent"]:
+            vary_perf=None
+            if type(perf) == str:
+                perf = (1,1)
+                vary_perf=perf
+            eval_mode = [None, (1,1),(2,2),(3,3)]
+            net = arch(num_classes=10, perforation_mode=perf)
+            op = torch.optim.SGD(net.parameters(), momentum=0.9, lr=0.1, weight_decay=0.0005)
+            # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(op, [100, 150, 175], gamma=0.1)
+            #op = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
+            epochs = 200
+            lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
+            #eval_mode=(2,2)
+            rs = 0
+            perfmode = perf[0]+"x"+perf[0] if type(perf[0]) == int else perf
+            curr_file = f"{name}_{perfmode}"
+            with open(f"./{curr_file}.txt", "w") as f:
+                results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
+                         make_imgs=False, plot_loss=False, vary_perf=vary_perf,
+                         file=f, eval_mode=eval_mode,
+                         run_name=curr_file, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
+                         lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
+                rs = results
+                with open(f"./{curr_file}_best.txt", "w") as ffs:
+                    print(rs, file=ffs)
 
 
 
