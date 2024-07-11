@@ -77,7 +77,7 @@ if __name__ == "__main__":
             lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(op, T_max=epochs)
             #eval_mode=(2,2)
             rs = 0
-            perfmode = perf[0]+"x"+perf[0] if type(perf[0]) == int else perf
+            perfmode = str(perf[0])+"x"+str(perf[0]) if type(perf[0]) == int else perf
             curr_file = f"{name}_{perfmode}"
             with open(f"./{curr_file}.txt", "w") as f:
                 results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
