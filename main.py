@@ -176,7 +176,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     #    if sum(pmask) != 0:
                     #        perfs[pmask] = np.array([(i + 1, i + 1)] * len(perfs[pmask]))
                 elif vary_perf == "2by2_equivalent":
-                    perfs = np.ones((n_conv, 2))
+                    perfs = np.ones((n_conv, 2), dtype=int)
                     rns = np.random.random(n_conv)
                     for i in range(n_conv):
                         rn = rns[i]
@@ -387,9 +387,9 @@ def test_net(net, batch_size=128, verbose=False, epochs=10, summarise=False, run
                 test_losses = [test_losses] * len(eval_mode)
                 ep_test_losses = [ep_test_losses] * len(eval_mode)
                 params = [params] * len(eval_mode)
-                best_acc = [best_acc] * len(eval_mode)
+                best_acc = [0] * len(eval_mode)
                 if type(minacc) != list:
-                    minacc = [minacc] * len(eval_mode)
+                    minacc = [1000.] * len(eval_mode)
                 for ind, ev in enumerate(eval_mode):
 
                     print("testing eval mode", ev)

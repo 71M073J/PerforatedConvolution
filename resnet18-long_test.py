@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import random
-
+import os
 import torchvision.models
 from pytorch_cinic.dataset import CINIC10
 from torch.utils.data import DataLoader
@@ -10,14 +10,14 @@ import numpy as np
 from main import test_net
 
 if __name__ == "__main__":
-    # np.random.seed(0)
-    # random.seed(0)
+    np.random.seed(0)
+    random.seed(0)
+    g = torch.Generator(device='cuda').manual_seed(0)
     augment = True
     tf = [transforms.ToTensor(), ]
     tf_test = [transforms.ToTensor(), ]
     data = "cifar"
     dataset1, dataset2, dataset3 = None, None, None
-    g = None
     bs = 64
     if augment:
         tf.extend([transforms.RandomChoice([transforms.RandomCrop(size=32, padding=4),
@@ -79,15 +79,21 @@ if __name__ == "__main__":
             rs = 0
             perfmode = str(perf[0])+"x"+str(perf[0]) if type(perf[0]) == int else perf
             curr_file = f"{name}_{perfmode}"
+            if not os.path.exists("./res/"):
+                os.mkdir("./res")
             print("starting run:", curr_file)
-            with open(f"./{curr_file}.txt", "w") as f:
+            if os.path.exists(f"./res/{curr_file}_best.txt"):
+                print("file for", curr_file, "already exists, skipping...")
+                continue
+            with open(f"./res/{curr_file}.txt", "w") as f:
                 results = test_net(net, batch_size=bs, epochs=epochs, do_profiling=False, summarise=False, verbose=False,
                          make_imgs=False, plot_loss=False, vary_perf=vary_perf,
-                         file=f, eval_mode=eval_mode,
+                         file=f, eval_mode=eval_mode,device="cuda",
                          run_name=curr_file, dataset=dataset1, dataset2=dataset2, dataset3=dataset3, op=op,
                          lr_scheduler=lr_scheduler, validate=False if data == "cifar" else True)
-                rs = results
-                with open(f"./{curr_file}_best.txt", "w") as ffs:
+                print(results)
+                rs = [float(x) for x in results]
+                with open(f"./res/{curr_file}_best.txt", "w") as ffs:
                     print(rs, file=ffs)
 
 
