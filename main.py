@@ -236,13 +236,13 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                           "Average net call:", int((networkCallTime / (i + 1)) * 100000) / 100, "Milliseconds",
                           file=file)
 
-                if do_profiling:
-                    stack.close()
-                    print(prof.key_averages().table(row_limit=10), file=file)
-                    with open("all_nets_profiling.txt", "a") as f:
-                        print("network", run_name, ":", file=f)
-                        print(prof.key_averages().table(row_limit=10), file=f)
-                    return
+        if do_profiling:
+            stack.close()
+            print(prof.key_averages().table(row_limit=10), file=file)
+            with open("all_nets_profiling.txt", "a") as f:
+                print("network", run_name, ":", file=f)
+                print(prof.key_averages().table(row_limit=10), file=f)
+            return
 
                 # l = 0
     if make_imgs:  # todo histogram of gradients
