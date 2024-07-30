@@ -163,10 +163,7 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                 perfs = None
                 if vary_perf == "incremental":
                     raise NotImplementedError()
-                    randn = np.random.randint(0, n_conv, size=2)  # TODO make this actually sensible
-                    perfs = np.array([(3, 3)] * n_conv)
-                    perfs[np.min(randn):np.max(randn)] = np.array(["both"] * (np.max(randn) - np.min(randn)))
-                    perfs[np.max(randn):] = (1, 1)
+
                 elif vary_perf == "random":#avg_proc 0.37 of non-perf
                     #rn = np.random.random(n_conv)
                     #perfs = np.array([(1, 1)] * n_conv)
@@ -180,17 +177,21 @@ def train(do_profiling, dataset, n_conv, p, device, loss_fn, make_imgs, losses, 
                     rns = np.random.random(n_conv)
                     for i in range(n_conv):
                         rn = rns[i]
-                        if rn < 0.42352941:
+                        if rn < 0.20029760897159576:
                             perfs[i] = 3,3
-                        elif rn < 0.52941176:
+                        elif rn < 0.32178425043821335:
                             perfs[i] = 2,3
-                        elif rn < 0.63529412:
+                        elif rn < 0.44327089190483093:
                             perfs[i] = 3,2
-                        elif rn < 0.74117647:
+                        elif rn < 0.5378847792744637:
+                            perfs[i] = 3,1
+                        elif rn < 0.6407210007309914:
+                            perfs[i] = 1,3
+                        elif rn < 0.7435572221875191:
                             perfs[i] = 2,2
-                        elif rn < 0.81176471:
+                        elif rn < 0.8306062072515488:
                             perfs[i] = 1,2
-                        elif rn < 0.88235294:
+                        elif rn < 0.9176551923155785:
                             perfs[i] = 2,1
                         else:
                             perfs[i] = 1,1
